@@ -1,2 +1,9 @@
 (test
- (name test_extensionOcamlComponent))
+ (name test_extensionOcamlComponent)
+ (flags
+  (:standard -warn-error "-unused-value-declaration" -warn-error "-unused-open"
+   -warn-error "-unused-constructor" -warn-error "-unused-extension" -warn-error "-unused-type-declaration"
+   -warn-error "-unused-var-strict")
+  )
+ (modules bottomup test_extensionOcamlComponent topdown language)
+ (libraries str))
