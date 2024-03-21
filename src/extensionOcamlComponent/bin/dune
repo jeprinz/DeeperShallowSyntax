@@ -1,0 +1,6 @@
+(executable
+ (public_name extensionOcamlComponent)
+ (name main)
+ (libraries extensionOcamlComponent)
+ (preprocess (pps js_of_ocaml-ppx))
+ (modes byte js))
