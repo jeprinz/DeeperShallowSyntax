@@ -3,9 +3,9 @@ open Str;;
 type sort = string
 
 type pattern =
-  Keyword of sort
+  Keyword of string
   | RegPattern of regexp
-  | SortPattern of string
+  | SortPattern of sort
 
 (* Pattern (Str.regexp {| |})  *)
 
@@ -29,10 +29,24 @@ let sane_regex_match (r : regexp) (s : string) : bool =
 module StringSet = Set.Make(String);;
 
 type rule = Rule of label * sort * (pattern list)
+type language = rule list
 
 let exampleRules : rule list = [
-  Rule ("App", "Term", [SortPattern "Term"; SortPattern "Term"]);
-  (* Rule ("Lam", "Term", [Keyword "fun"; RegPattern (Str.regexp {|[A-Za-z]+|}); Keyword "=>" ; SortPattern "Term"]); *)
-  Rule ("Lam", "Term", [Keyword "fun"; Keyword "=>" ; SortPattern "Term"]);
-  Rule ("Var", "Term", [RegPattern (Str.regexp {|[A-Za-z]+|})])
+  Rule ("Var", "Term", [RegPattern (Str.regexp {|[A-Za-z]+|})]);
+  (* Rule ("App", "Term", [SortPattern "Term"; SortPattern "Term"]); *)
+  Rule ("Lam", "Term", [Keyword "fun"; RegPattern (Str.regexp {|[A-Za-z]+|}); Keyword "=>" ; SortPattern "Term"]);
+  Rule ("Paren", "Term", [Keyword "("; SortPattern "Term"; Keyword ")"]);
 ]
+
+let tokenize (input : string) : string list =
+  (* https://stackoverflow.com/questions/39813584/how-to-split-on-whitespaces-in-ocaml *)
+  Str.split (Str.regexp "[ \n\r\x0c\t]+") input
+
+
+let findKeywords (lang : language) : StringSet.t =
+  let isKeyword (p : pattern) : string option =
+    match p with
+    | Keyword s -> Some s
+    | _ -> None
+  in
+  StringSet.of_list (List.concat (List.map (fun (Rule (_label, _sort, hs)) -> List.filter_map isKeyword hs) lang));

@@ -23,36 +23,16 @@ let matchLists (stack : stackElem list) (reverseChildren : pattern list) (keywor
       | _, _ -> None
   in impl stack reverseChildren []
 
-type language = rule list
 type preProcessedLanguage = {
   reversedRules : rule list;
   keywords : StringSet.t
 } 
 
 let preProcessLanguage (lang : language) : preProcessedLanguage =
-  let isKeyword (p : pattern) : string option =
-    match p with
-    | Keyword s -> Some s
-    | _ -> None
-  in
   {
     reversedRules = List.map (fun (Rule (l, c, hs)) -> Rule (l, c, List.rev hs)) lang;
-    keywords = StringSet.of_list (List.concat (List.map (fun (Rule (_label, _sort, hs)) -> List.filter_map isKeyword hs) lang));
+    keywords = findKeywords lang
   }
-
-(* type parseState = {
-  stack : stackElem list;
-  position : int;
-} *)
-
-(* type parseResult =
-  InProcess of parseState
-  | Success of tree
-  | Failure *)
-
-let tokenize (input : string) : string list =
-  (* https://stackoverflow.com/questions/39813584/how-to-split-on-whitespaces-in-ocaml *)
-  Str.split (Str.regexp "[ \n\r\x0c\t]+") input
 
 let show_stack_elem (se : stackElem) : string =
   match se with
