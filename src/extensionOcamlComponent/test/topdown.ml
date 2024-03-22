@@ -1,4 +1,4 @@
-open Str;;
+(* open Str;; *)
 
 open Language;;
 
@@ -37,6 +37,57 @@ let parseTD (topSort : sort) (input : string) (lang : language) : (tree, string)
   in match impl topSort true tokens with
   | Some (t, []) -> Ok t
   | _ -> Error "Fail"
+
+(*
+ One idea would be to do more backtracking. If subsequent patterns in matchPattern fail, retry with next matching rule for previous pattern.
+
+ So for example, if we have (A B _) suceeded so far, and then _ can't be filled, we should backtrack the choice
+  of B to get (A C D) eventually.
+
+ To implement that, I need to make the parse function completely tail recursive, so that if calls fail it can backtrack.
+*)
+
+type path =
+  Node of path * label * (tree list) * (pattern list)
+  | Top of sort
+
+let moveUp (path : path) (tree : tree) : (path, tree) result =
+  match path with
+  | Node (above, l, ts, patterns) -> Ok (Node (above, l, (ts @ [tree]), patterns))
+  | Top _sort -> Error tree
+  
+
+let rec backtrackingParse (lang : language) (keywords : StringSet.t) (tokens : string list) (where : path) : tree option =
+  let findRule sort above =
+      List.find_map
+        (fun (Rule(newLabel, newSort, newPattern)) ->
+          if not (newSort = sort) then None else backtrackingParse lang keywords tokens
+            (Node (above, newLabel, [], newPattern))
+        )
+      lang
+  in
+  match where with
+  (* | Top sort,  *)
+  | Top sort -> findRule sort (Top sort)
+  (* | Top _sort -> if tokens = [] then _ else None *)
+  | Node (above, label, children, []) ->
+      (match moveUp above (Node(label, children)) with
+      | Error t -> if tokens = [] then Some t else None
+      | Ok path -> backtrackingParse lang keywords tokens path)
+  | Node (above, label, leftChildren, patterns) -> (
+    match patterns, tokens with
+    | SortPattern sort :: patterns', _ -> findRule sort (Node (above, label, leftChildren, patterns'))
+    | Keyword expected :: patterns', actual :: tokens' ->
+      if expected = actual then backtrackingParse lang keywords tokens' (Node(above, label, leftChildren @ [String actual], patterns')) else None
+    | RegPattern expected :: patterns', actual :: tokens' ->
+      (* if not (StringSet.mem actual keywords) && sane_regex_match expected actual then *)
+      if sane_regex_match expected actual then
+        backtrackingParse lang keywords tokens' (Node(above, label, leftChildren @ [String actual], patterns')) else None
+    | _, _ -> None
+  )
+
+(* This backtracking parser seems to work! The only issue is, the rules need to be ordered so that it tries leaves first before App.
+   Maybe this reordering should be done automatically? Maybe only for left recursive rules?*)
 
 (* exception Failure of string *)
 

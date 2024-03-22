@@ -32,10 +32,16 @@ type rule = Rule of label * sort * (pattern list)
 type language = rule list
 
 let exampleRules : rule list = [
-  Rule ("Var", "Term", [RegPattern (Str.regexp {|[A-Za-z]+|})]);
-  (* Rule ("App", "Term", [SortPattern "Term"; SortPattern "Term"]); *)
+  (* Rule ("Var", "Term", [RegPattern (Str.regexp {|[A-Za-z]+|})]); *)
+
+  Rule ("Var", "Atom", [RegPattern (Str.regexp {|[A-Za-z]+|})]);
   Rule ("Lam", "Term", [Keyword "fun"; RegPattern (Str.regexp {|[A-Za-z]+|}); Keyword "=>" ; SortPattern "Term"]);
-  Rule ("Paren", "Term", [Keyword "("; SortPattern "Term"; Keyword ")"]);
+  Rule ("Paren", "Atom", [Keyword "("; SortPattern "Term"; Keyword ")"]);
+
+  Rule ("Convert", "Term", [SortPattern "Atom"]);
+  (* Rule ("Var", "Term", [RegPattern (Str.regexp {|[A-Za-z]+|})]); *)
+  Rule ("App", "Term", [SortPattern "Term"; SortPattern "Atom"]);
+
 ]
 
 let tokenize (input : string) : string list =

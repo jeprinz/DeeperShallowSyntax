@@ -3,9 +3,13 @@ open Language;;
 open Topdown;;
 
 let _ =
-  match (parseTD "Term" "fun x => fun y => ( fun z => q )" exampleRules) with
+  match (backtrackingParse exampleRules (findKeywords exampleRules) (tokenize "fun x => x ( a a ) ") (Top "Term")) with
+  | Some t -> print_endline (show_tree t)
+  | None -> print_endline "FAILED"
+
+  (* match (parseTD "Term" "a a a" exampleRules) with
   | Error e -> print_endline e
-  | Ok t -> print_endline (show_tree t)
+  | Ok t -> print_endline (show_tree t) *)
 
   (* match (parse "fun => x x" exampleRules) with
   | Error e -> print_endline e
