@@ -56,13 +56,17 @@ let moveUp (path : path) (tree : tree) : (path, tree) result =
   | Node (above, l, ts, patterns) -> Ok (Node (above, l, (ts @ [tree]), patterns))
   | Top _sort -> Error tree
   
+let id : int ref = ref 0
 
 let rec backtrackingParse (lang : language) (keywords : StringSet.t) (tokens : string list) (where : path) : tree option =
   let findRule sort above =
       List.find_map
         (fun (Rule(newLabel, newSort, newPattern)) ->
-          if not (newSort = sort) then None else backtrackingParse lang keywords tokens
-            (Node (above, newLabel, [], newPattern))
+          if not (newSort = sort) then None else
+            ( let myId = !id in id := !id + 1 ;
+              print_endline ("start " ^ string_of_int myId ^ " rule " ^ newLabel ^ " with tokens = " ^ (String.concat " " tokens));
+            let res = (backtrackingParse lang keywords tokens
+            (Node (above, newLabel, [], newPattern))) in print_endline ("end " ^ string_of_int myId ^ " end") ; res)
         )
       lang
   in

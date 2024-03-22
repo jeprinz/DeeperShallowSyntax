@@ -3,7 +3,7 @@ open Language;;
 open Topdown;;
 
 let _ =
-  match (backtrackingParse exampleRules (findKeywords exampleRules) (tokenize "fun x => x ( a a ) ") (Top "Term")) with
+  match (backtrackingParse exampleRules (findKeywords exampleRules) (tokenize "( a ) x ") (Top "Term")) with
   | Some t -> print_endline (show_tree t)
   | None -> print_endline "FAILED"
 
