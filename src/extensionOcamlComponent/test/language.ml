@@ -32,15 +32,36 @@ type rule = Rule of label * sort * (pattern list)
 type language = rule list
 
 let exampleRules : rule list = [
-  (* Rule ("Var", "Term", [RegPattern (Str.regexp {|[A-Za-z]+|})]); *)
-
-  Rule ("Var", "Atom", [RegPattern (Str.regexp {|[A-Za-z]+|})]);
+  (*Normal: *)
+  Rule ("App", "Term", [SortPattern "Term"; SortPattern "Term"]);
+  Rule ("Var", "Term", [RegPattern (Str.regexp {|[A-Za-z]+|})]);
+  Rule ("PlusApp", "Term", [SortPattern "Term"; Keyword "+"; SortPattern "Term"]);
+  Rule ("Paren", "Term", [Keyword "("; SortPattern "Term"; Keyword ")"]);
   Rule ("Lam", "Term", [Keyword "fun"; RegPattern (Str.regexp {|[A-Za-z]+|}); Keyword "=>" ; SortPattern "Term"]);
-  Rule ("Paren", "Atom", [Keyword "("; SortPattern "Term"; Keyword ")"]);
 
-  Rule ("Convert", "Term", [SortPattern "Atom"]);
+  (*Transformed: *)
+  (* Rule ("Var", "Term", [RegPattern (Str.regexp {|[A-Za-z]+|})]);
+  Rule ("App-cons", "Term-list", [SortPattern "Term"; SortPattern "Term-list"]);
+  Rule ("Plusapp-cons", "Term-list", [Keyword "+"; SortPattern "Term"; SortPattern "Term-list"]);
+  Rule ("Paren", "Term", [Keyword "("; SortPattern "Term"; Keyword ")"]);
+  Rule ("Term-Nil", "Term-list", []);
+  Rule ("Term-oflist", "Term", [SortPattern "Term"; SortPattern "Term-list"]); *)
+
+
+  (* Rule ("Paren", "Term", [Keyword "("; SortPattern "Term"; Keyword ")"]);
+  Rule ("Application", "Term", [RegPattern (Str.regexp {|[A-Za-z]+|}); SortPattern "ArgList"]);
+  Rule ("ArgNil", "ArgList", []);
+  Rule ("ArgCons", "ArgList", [SortPattern "Term"; SortPattern "ArgList"]); *)
+
+  (*
+  (* Rule ("Var", "Atom", [RegPattern (Str.regexp {|[A-Za-z]+|})]); *)
+  (* Rule ("Lam", "Term", [Keyword "fun"; RegPattern (Str.regexp {|[A-Za-z]+|}); Keyword "=>" ; SortPattern "Term"]); *)
+
+  (* Rule ("Convert", "Term", [SortPattern "Atom"]); *)
   (* Rule ("Var", "Term", [RegPattern (Str.regexp {|[A-Za-z]+|})]); *)
-  Rule ("App", "Term", [SortPattern "Term"; SortPattern "Atom"]);
+  (* Rule ("App", "Term", [SortPattern "Term"; SortPattern "Atom"]); *)
+  Rule ("Paren", "Atom", [Keyword "("; SortPattern "Term"; Keyword ")"]);
+  *)
 
 ]
 
