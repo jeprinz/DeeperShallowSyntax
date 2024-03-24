@@ -1,0 +1,6 @@
+This is the kind of specification that I want to be able to input:
+
+Regex s "[A-Za-z]+"
+Term (Cons s gamma a) b 
+|------------------------------------- "fun _ => _"
+Term gamma (arrow a b)

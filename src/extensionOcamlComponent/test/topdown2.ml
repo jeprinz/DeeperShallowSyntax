@@ -98,14 +98,14 @@ let moveUp (path : path) (tree : internalTree) : (path, internalTree) result =
 let rec amILooping (path : path) (ctr : internalLabel) : bool =
   match path with
   | Node (above, label, [], _) ->
-    print_endline ("amILooping did something: ctr is: " ^ show_internal_label ctr ^ " and label is: " ^ show_internal_label label) ;
+    (* print_endline ("amILooping did something: ctr is: " ^ show_internal_label ctr ^ " and label is: " ^ show_internal_label label) ; *)
     (label = ctr) || (amILooping above ctr)
   | _ -> false
   
 let id : int ref = ref 0
 
 let rec parseImpl (lang : internalLang) (keywords : StringSet.t) (tokens : string list) (where : path) : internalTree option =
-  if lengthPath where > 100 then raise (Error "parseImpl") else (*TODO: Get rid of this line.*)
+  (* if lengthPath where > 100 then raise (Error "parseImpl") else (*TODO: Get rid of this line.*) *)
   let findRule (sort : internalSort) (above : path) =
       let specialRules = match sort with
         | NormalSort s -> [ofListRule s]
@@ -114,11 +114,13 @@ let rec parseImpl (lang : internalLang) (keywords : StringSet.t) (tokens : strin
       List.find_map
         (fun (IRule(newLabel, newSort, newPattern)) ->
           if not (newSort = sort) || (amILooping above newLabel) then None else
-            ( let myId = !id in id := !id + 1 ;
-              print_endline ("start " ^ string_of_int myId ^ " rule " ^ show_internal_label newLabel ^ " with tokens = " ^ (String.concat " " tokens));
+            ( let _myId = !id in id := !id + 1 ;
+              (* print_endline ("start " ^ string_of_int myId ^ " rule " ^ show_internal_label newLabel ^ " with tokens = " ^ (String.concat " " tokens)); *)
               flush stdout;
             let res = (fun x -> x) (parseImpl lang keywords tokens
-            (Node (above, newLabel, [], newPattern))) in print_endline ("end " ^ string_of_int myId ^ " end") ; res)
+            (Node (above, newLabel, [], newPattern))) in
+            (* print_endline ("end " ^ string_of_int myId ^ " end") ; *)
+            res)
         )
       (lang @ specialRules)
   in
@@ -144,8 +146,8 @@ let rec parseImpl (lang : internalLang) (keywords : StringSet.t) (tokens : strin
 
 let topDownParse2 (lang : language) (keywords : StringSet.t) (tokens : string list) (topSort : sort) : tree option =
   let internalRules = rewriteRules lang in
-  print_endline "internal rules: ";
-  print_endline (String.concat "\n" (List.map show_internalRule internalRules));
+  (* print_endline "internal rules: "; *)
+  (* print_endline (String.concat "\n" (List.map show_internalRule internalRules)); *)
   Option.bind (parseImpl internalRules keywords tokens (Top (NormalSort topSort))) (fun it ->
-    print_endline ("internal tree was: " ^ show_internalTree it);
+    (* print_endline ("internal tree was: " ^ show_internalTree it); *)
     Some (convertBack it))
