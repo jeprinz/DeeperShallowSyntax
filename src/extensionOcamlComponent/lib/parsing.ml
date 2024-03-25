@@ -87,6 +87,7 @@ The output tree contains labels, and a pair of integers which are the positions 
 *)
 let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
   (input : string list) (pos : position) (where : ('sort, 'label) path) : ('label ast, (string * position)) result =
+  (* In order to keep track of errors, whenever it backtracks it remembers the furthest position it got to. We assume this is where the error is. *)
   let furthestPos : position ref = ref {lineNumber = 0; posInLine = 0} in
   let errorMessage : string ref = ref "" in
   let rec parseImpl (remainingLinesBeforeSpace : string list) (posBeforeSpace : position) (where : ('sort, 'label) path) : ('label ast) option =
@@ -206,28 +207,6 @@ and unravelList (inside : 'label ast) (t : 'label internalLabel ast) : 'label as
 
 let doParse (lang : ('sort, 'label) language) (lines : string list) (topSort : 'sort) (compare : 'sort -> 'sort -> bool) : ('label ast, string) result =
   let internalRules = rewriteRules compare lang in
-  (* Option.bind (parse (rewriteCompare compare) internalRules lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) (fun it -> *)
-    (* Some (convertBack it)) *)
   match (parse (rewriteCompare compare) internalRules lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) with
   | Ok ast -> Ok (convertBack ast)
   | Error (msg, pos) -> Error ("At " ^ show_position pos ^ " " ^ msg)
-
-(*
- Note to self:
- This version has a few improvements over the version in the other file:
- 1) [x] - It works generically over sorts, labels, and a comparison function. This should make it easier to integrate with other things
- 2) [x] - It doesn't assume that the string should be tokenized by whitespace (it nevertheless assumes that whitespace can be skipped)
-  I just had a realization - I can make a rule "whitespace : Regex (matches whitespace) any -> any".
-  This is equivalent to the "skipWhitespace" function that I wrote!
- 3) [x] - I also need to make it keep track of the string positions in the tree.
- 4) [x] - I also need to make it automatically skip whitespace.
-  I just had a realization - I can make a rule "whitespace : Regex (matches whitespace) any -> any".
-  This is equivalent to the "skipWhitespace" function that I wrote!
- 5) [x] - I also need to make it input a list of lines rather than just a single string.
- 6) [x] - I also need to make it capable of giving some kind of error message with position when it fails.
-        - Maybe keep track of how far it gets in input during backtracking, and assume that the first bit of string that it doesn't ever
-          successfully match with anything is the problem?
-        - I only need to track failures that happen at the Keyword or Regex match. I can also record WHAT it specifically was looking for when it failed.
-        - Actually, there is a third way it can fail - if it expects more patterns but is at the end of the file! This obiously can only
-          happen in one place, so maybe track it separately?
-*)
