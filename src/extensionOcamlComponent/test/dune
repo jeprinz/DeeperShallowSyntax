@@ -5,5 +5,5 @@
    -warn-error "-unused-constructor" -warn-error "-unused-extension" -warn-error "-unused-type-declaration"
    -warn-error "-unused-var-strict")
   )
- (modules bottomup test_extensionOcamlComponent topdown language topdown2 parsing)
+ (modules test_extensionOcamlComponent parsing)
  (libraries str))

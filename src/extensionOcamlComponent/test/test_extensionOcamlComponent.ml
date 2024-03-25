@@ -1,7 +1,3 @@
-(* open Bottomup;; *)
-(* open Language;; *)
-(* open Topdown;; *)
-(* open Topdown2 *)
 open Parsing
 
 let exampleRules : (string, string) language = [
@@ -19,25 +15,6 @@ let _ =
   (* let q = "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a " in *)
   (* let qqq = q ^ q ^ q ^ q ^ q ^ q in *)
 
-  match (doParse exampleRules ["let x = fun y => 1 * y in x + y"] "Term" (fun x y -> x = y)) with
+  match (doParse exampleRules ["fun x => 2"] "Term" (fun x y -> x = y)) with
   | Ok t -> print_endline (show_tree show_ast_label t)
   | Error msg -> print_endline msg
-
-  (* match (topDownParse2 exampleRules (findKeywords exampleRules) (tokenize qqq) "Term") with
-  | Some t -> print_endline (show_tree t)
-  | None -> print_endline "FAILED" *)
-
-  (* match (backtrackingParse exampleRules (findKeywords exampleRules) (tokenize p) (Top "Term")) with
-  | Some t -> print_endline (show_tree t)
-  | None -> print_endline "FAILED" *)
-
-  (* match (parseTD "Term" "a a a" exampleRules) with
-  | Error e -> print_endline e
-  | Ok t -> print_endline (show_tree t) *)
-
-  (* match (parse "fun => x x" exampleRules) with
-  | Error e -> print_endline e
-  | Ok t -> print_endline (show_tree t) *)
-
-  (* let res : string = if (sane_regex_match (Str.regexp {|[A-Za-z]+|}) "a") then "yes" else "no" in *)
-  (* print_endline res *)
