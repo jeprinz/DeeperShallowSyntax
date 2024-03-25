@@ -9,6 +9,9 @@ type position = {
   posInLine : int;
 }
 
+let lessThanPos (pos1 : position) (pos2 : position) : bool =
+  (pos1.lineNumber < pos2.lineNumber) || (pos1.lineNumber = pos2.lineNumber && pos1.posInLine < pos2.posInLine)
+
 type 'label astLabel = AstString of string | AstNode of 'label
 (* An abstract syntax tree is a tree where each node is either an AstString with no children, or
    a Node with labels from a set.
@@ -82,48 +85,59 @@ let rec skipLeadingWhitespace (lines : string list) (pos : position) : (string l
 This function parses a string according to a list of rules. It returns the AST if the parse was successful.  
 The output tree contains labels, and a pair of integers which are the positions in the input string corresponding to that node.
 *)
-let rec parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
-  (remainingLinesBeforeSpace : string list) (posBeforeSpace : position) (where : ('sort, 'label) path) : ('label ast) option =
-  let (remainingLines, pos) = skipLeadingWhitespace remainingLinesBeforeSpace posBeforeSpace in
-  let findRule (sort : 'sort) (above : ('sort, 'label) path) =
-      List.find_map
-        (fun (Rule(newLabel, newSort, newPattern)) ->
-          if not (compare newSort sort) || (amILooping above newLabel) then None else
-            (parse compare lang remainingLines pos (PNode (above, newLabel, pos, [], newPattern))) 
-        )
-      lang
-  in
-  match where with
-  (* If we are starting at the top of the AST, find a rule matching the sort *)
-  | Top sort -> findRule sort (Top sort)
-  (* If there are no more patterns, collect the children into a tree and go up in the path *)
-  | PNode (above, label, leftPosition, children, []) ->
-      let tree = Node((AstNode label, leftPosition, posBeforeSpace), children) in
-      (match above with
-        | PNode (above, l, lPos, ts, patterns) -> parse compare lang remainingLines pos (PNode (above, l, lPos, (ts @ [tree]), patterns))
-        | Top _sort -> if remainingLines = [] then Some tree else None)
-  (* If there are more patterns, then handle the next pattern *)
-  | PNode (above, label, lPos, leftChildren, patterns) -> (
-    match patterns with
-    | SortPattern sort :: patterns' -> findRule sort (PNode (above, label, lPos, leftChildren, patterns'))
-    | Keyword expected :: patterns' ->
-      if remainingLines = [] then None else
-      if String.length (List.hd remainingLines) >= pos.posInLine + (String.length expected) &&
-         expected = String.sub (List.hd remainingLines) pos.posInLine (String.length expected)
-        then
-          let end_position = (pos.posInLine + String.length expected) in
-          parse compare lang remainingLines {pos with posInLine = end_position} (PNode(above, label, lPos, leftChildren (*@ [String actual]*), patterns'))
-        else None
-    | RegPattern expected :: patterns' ->
-      if remainingLines = [] then None else
-      if Str.string_match expected (List.hd remainingLines) pos.posInLine
-        then
-          let end_position = {pos with posInLine = Str.match_end ()} in
-          parse compare lang remainingLines end_position
-            (PNode(above, label, lPos, leftChildren @ [Node((AstString (matched_string (List.hd remainingLines)), pos, end_position), [])], patterns'))
-        else None
-    | _ -> None
-  )
+let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
+  (input : string list) (pos : position) (where : ('sort, 'label) path) : ('label ast, (string * position)) result =
+  let furthestPos : position ref = ref {lineNumber = 0; posInLine = 0} in
+  let errorMessage : string ref = ref "" in
+  let rec parseImpl (remainingLinesBeforeSpace : string list) (posBeforeSpace : position) (where : ('sort, 'label) path) : ('label ast) option =
+    let (remainingLines, pos) = skipLeadingWhitespace remainingLinesBeforeSpace posBeforeSpace in
+    let newPossibleError (msg : string) =
+      if lessThanPos !furthestPos pos then
+        (furthestPos := pos; errorMessage := msg)
+      else ()
+    in
+    let findRule (sort : 'sort) (above : ('sort, 'label) path) =
+        List.find_map
+          (fun (Rule(newLabel, newSort, newPattern)) ->
+            if not (compare newSort sort) || (amILooping above newLabel) then (newPossibleError "No rule matches" ; None) else
+              (parseImpl remainingLines pos (PNode (above, newLabel, pos, [], newPattern))) 
+          )
+        lang
+    in
+    match where with
+    (* If we are starting at the top of the AST, find a rule matching the sort *)
+    | Top sort -> findRule sort (Top sort)
+    (* If there are no more patterns, collect the children into a tree and go up in the path *)
+    | PNode (above, label, leftPosition, children, []) ->
+        let tree = Node((AstNode label, leftPosition, posBeforeSpace), children) in
+        (match above with
+          | PNode (above, l, lPos, ts, patterns) -> parseImpl remainingLines pos (PNode (above, l, lPos, (ts @ [tree]), patterns))
+          | Top _sort -> if remainingLines = [] then Some tree else (newPossibleError "Expected end of file" ; None))
+    (* If there are more patterns, then handle the next pattern *)
+    | PNode (above, label, lPos, leftChildren, patterns) -> (
+      match patterns with
+      | SortPattern sort :: patterns' -> findRule sort (PNode (above, label, lPos, leftChildren, patterns'))
+      | Keyword expected :: patterns' ->
+        if remainingLines = [] then (newPossibleError "Extra stuff" ; None) else
+        if String.length (List.hd remainingLines) >= pos.posInLine + (String.length expected) &&
+          expected = String.sub (List.hd remainingLines) pos.posInLine (String.length expected)
+          then
+            let end_position = (pos.posInLine + String.length expected) in
+            parseImpl remainingLines {pos with posInLine = end_position} (PNode(above, label, lPos, leftChildren (*@ [String actual]*), patterns'))
+          else (newPossibleError ("Expected " ^ expected) ; None)
+      | RegPattern expected :: patterns' ->
+        if remainingLines = [] then (newPossibleError "Extra stuff" ; None) else
+        if Str.string_match expected (List.hd remainingLines) pos.posInLine
+          then
+            let end_position = {pos with posInLine = Str.match_end ()} in
+            parseImpl remainingLines end_position
+              (PNode(above, label, lPos, leftChildren @ [Node((AstString (matched_string (List.hd remainingLines)), pos, end_position), [])], patterns'))
+          else (newPossibleError ("Expected token matching regex") ; None)
+      | _ -> (newPossibleError "Had no more patterns to match" ; None)
+    )
+  in match parseImpl input pos where with
+     | Some t -> Ok t
+     | None -> Error (!errorMessage, !furthestPos)
 
 (* In order to deal with left-recursive rules in the grammar, these functions translate the grammar into an alternate form which
    is equivalent but not left-recursive. The idea is to convert left-recursive structure into right-recursive lists.*)
@@ -190,13 +204,13 @@ and unravelList (inside : 'label ast) (t : 'label internalLabel ast) : 'label as
     )
   | _ -> raise (Error "unravelList")
 
-let doParse (lang : ('sort, 'label) language) (lines : string list) (topSort : 'sort) (compare : 'sort -> 'sort -> bool) : 'label ast option =
+let doParse (lang : ('sort, 'label) language) (lines : string list) (topSort : 'sort) (compare : 'sort -> 'sort -> bool) : ('label ast, string) result =
   let internalRules = rewriteRules compare lang in
-  (* print_endline "internal rules: "; *)
-  (* print_endline (String.concat "\n" (List.map show_internalRule internalRules)); *)
-  Option.bind (parse (rewriteCompare compare) internalRules lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) (fun it ->
-    (* print_endline ("internal tree was: " ^ show_internalTree it); *)
-    Some (convertBack it))
+  (* Option.bind (parse (rewriteCompare compare) internalRules lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) (fun it -> *)
+    (* Some (convertBack it)) *)
+  match (parse (rewriteCompare compare) internalRules lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) with
+  | Ok ast -> Ok (convertBack ast)
+  | Error (msg, pos) -> Error ("At " ^ show_position pos ^ " " ^ msg)
 
 (*
  Note to self:
@@ -210,7 +224,10 @@ let doParse (lang : ('sort, 'label) language) (lines : string list) (topSort : '
   I just had a realization - I can make a rule "whitespace : Regex (matches whitespace) any -> any".
   This is equivalent to the "skipWhitespace" function that I wrote!
  5) [x] - I also need to make it input a list of lines rather than just a single string.
- 6) [ ] - I also need to make it capable of giving some kind of error message with position when it fails.
+ 6) [x] - I also need to make it capable of giving some kind of error message with position when it fails.
         - Maybe keep track of how far it gets in input during backtracking, and assume that the first bit of string that it doesn't ever
           successfully match with anything is the problem?
+        - I only need to track failures that happen at the Keyword or Regex match. I can also record WHAT it specifically was looking for when it failed.
+        - Actually, there is a third way it can fail - if it expects more patterns but is at the end of the file! This obiously can only
+          happen in one place, so maybe track it separately?
 *)
