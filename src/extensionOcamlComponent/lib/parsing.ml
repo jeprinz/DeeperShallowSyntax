@@ -54,15 +54,16 @@ AST which has been built up. It resembles a one-hole context, except it is a man
 n children may be missing for each node. In their place, it keeps track of the patterns to be filled in for each
 of these partial nodes.  To put it another way, it is a prefix of the nodes of a tree when the tree is viewed in
 top-down left-to-right order.
-Each node in the path also has the position in the text file for the left end of the node.*)
+Each node in the path also has the position in the text file for the left end of the node.
+The boolean is if anything has been matched so far.*)
 type ('sort, 'label) path =
-  PNode of ('sort, 'label) path * 'label * position * ('label ast list) * ('sort pattern list)
+  PNode of ('sort, 'label) path * 'label * position * bool * ('label ast list) * ('sort pattern list)
   | Top of 'sort
 
 (* To prevent infinite recursion on left-recursive rules, this function checks any input has been accepted since the last instance of a rule. *)
 let rec amILooping (path : ('sort, 'label) path) (ctr : 'label) : bool =
   match path with
-  | PNode (above, label, _position, [], _) ->
+  | PNode (above, label, _position, false, _, _) ->
     (label = ctr) || (amILooping above ctr)
   | _ -> false
 
@@ -101,7 +102,7 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
         List.find_map
           (fun (Rule(newLabel, newSort, newPattern)) ->
             if not (compare newSort sort) || (amILooping above newLabel) then (newPossibleError "No rule matches" ; None) else
-              (parseImpl remainingLines pos (PNode (above, newLabel, pos, [], newPattern))) 
+              (parseImpl remainingLines pos (PNode (above, newLabel, pos, false, [], newPattern))) 
           )
         lang
     in
@@ -109,22 +110,22 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
     (* If we are starting at the top of the AST, find a rule matching the sort *)
     | Top sort -> findRule sort (Top sort)
     (* If there are no more patterns, collect the children into a tree and go up in the path *)
-    | PNode (above, label, leftPosition, children, []) ->
+    | PNode (above, label, leftPosition, _, children, []) ->
         let tree = Node((AstNode label, leftPosition, posBeforeSpace), children) in
         (match above with
-          | PNode (above, l, lPos, ts, patterns) -> parseImpl remainingLines pos (PNode (above, l, lPos, (ts @ [tree]), patterns))
+          | PNode (above, l, lPos, anyMatchedYet, ts, patterns) -> parseImpl remainingLines pos (PNode (above, l, lPos, anyMatchedYet, (ts @ [tree]), patterns))
           | Top _sort -> if remainingLines = [] then Some tree else (newPossibleError "Expected end of file" ; None))
     (* If there are more patterns, then handle the next pattern *)
-    | PNode (above, label, lPos, leftChildren, patterns) -> (
+    | PNode (above, label, lPos, anyMatchedYet, leftChildren, patterns) -> (
       match patterns with
-      | SortPattern sort :: patterns' -> findRule sort (PNode (above, label, lPos, leftChildren, patterns'))
+      | SortPattern sort :: patterns' -> findRule sort (PNode (above, label, lPos, anyMatchedYet, leftChildren, patterns'))
       | Keyword expected :: patterns' ->
         if remainingLines = [] then (newPossibleError "Extra stuff" ; None) else
         if String.length (List.hd remainingLines) >= pos.posInLine + (String.length expected) &&
           expected = String.sub (List.hd remainingLines) pos.posInLine (String.length expected)
           then
             let end_position = (pos.posInLine + String.length expected) in
-            parseImpl remainingLines {pos with posInLine = end_position} (PNode(above, label, lPos, leftChildren (*@ [String actual]*), patterns'))
+            parseImpl remainingLines {pos with posInLine = end_position} (PNode(above, label, lPos, true, leftChildren (*@ [String actual]*), patterns'))
           else (newPossibleError ("Expected " ^ expected) ; None)
       | RegPattern expected :: patterns' ->
         if remainingLines = [] then (newPossibleError "Extra stuff" ; None) else
@@ -132,7 +133,7 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
           then
             let end_position = {pos with posInLine = Str.match_end ()} in
             parseImpl remainingLines end_position
-              (PNode(above, label, lPos, leftChildren @ [Node((AstString (matched_string (List.hd remainingLines)), pos, end_position), [])], patterns'))
+              (PNode(above, label, lPos, true, leftChildren @ [Node((AstString (matched_string (List.hd remainingLines)), pos, end_position), [])], patterns'))
           else (newPossibleError ("Expected token matching regex") ; None)
       | _ -> (newPossibleError "Had no more patterns to match" ; None)
     )
