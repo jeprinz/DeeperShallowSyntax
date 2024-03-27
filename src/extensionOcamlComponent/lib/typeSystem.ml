@@ -47,9 +47,21 @@ type constructor = {
   conclusion : term;
 }
 
+let regexSort (s : term) (regex : string) =
+  App(App(Const "Regex", s), Const regex)
+(* TODO: here I am kind of overloading Const to both be constant symbols, and also strings. I should split that into two things. *)
+let matchRegexSort (s : term) : (term * string) option =
+  match s with
+  | App(App(Const "Regex", s), Const regex) -> Some (s , regex)
+  | _ -> None
+
 type inductive = constructor list
 
 type program = string ast
+
+module StringMap = Map.Make (String)
+let makeFastConstructorLookup (lang : inductive) : constructor StringMap.t =
+  List.fold_right (fun ctr acc -> StringMap.add ctr.name ctr acc) lang StringMap.empty
 
 (* TODO: deal with the "Regex" special relation. *)
 
@@ -65,7 +77,9 @@ let makeParser (lang : inductive) : (term, string) language =
       | NameHole ->
         let premise = List.nth premises !i in
         i := !i + 1;
-        SortPattern premise
+        match matchRegexSort premise with
+        | None -> SortPattern premise
+        | Some (_s, regex) -> RegPattern (Str.regexp regex)
     )look in
     Rule(name, conclusion, pattern)
   ) lang

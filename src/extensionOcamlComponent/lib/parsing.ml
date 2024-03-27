@@ -9,6 +9,10 @@ type position = {
   posInLine : int;
 }
 
+type spanPosition = {
+  left : position; right : position;
+} (* TODO: put spanPosition in some places, like ast. *)
+
 let lessThanPos (pos1 : position) (pos2 : position) : bool =
   (pos1.lineNumber < pos2.lineNumber) || (pos1.lineNumber = pos2.lineNumber && pos1.posInLine < pos2.posInLine)
 
