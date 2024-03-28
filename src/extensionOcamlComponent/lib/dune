@@ -4,6 +4,6 @@
    -warn-error "-unused-constructor" -warn-error "-unused-extension" -warn-error "-unused-type-declaration"
    -warn-error "-unused-var-strict")
   )
- (modules parsing unification typeSystem typecheck)
+ (modules parsing unification typeSystem typecheck specSpec)
  (preprocess (pps ppx_import ppx_deriving.show ppx_deriving.ord))
  (name extensionOcamlComponent))

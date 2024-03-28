@@ -17,7 +17,7 @@ Term gamma (arrow a b)
 
 (* Parser grammar *)
 
-type astLabel =
+(* type astLabel =
   | RLamArgListNil
   | RLamArgListCons
   | RLamAbs
@@ -32,7 +32,7 @@ type astSort =
 let rules : (astSort, astLabel) language = [
   Rule(RLamAbs, SLamTerm, [Keyword "\\"; SortPattern SLamName ; Keyword "."; SortPattern SLamTerm]);
   Rule(RLamApp, SLamTerm, [SortPattern SLamTerm; SortPattern SLamTerm]);
-]
+] *)
 
 (* Representation of a programming language *)
 
@@ -53,6 +53,13 @@ let regexSort (s : term) (regex : string) =
 let matchRegexSort (s : term) : (term * string) option =
   match s with
   | App(App(Const "Regex", s), Const regex) -> Some (s , regex)
+  | _ -> None
+
+let notEqualSort (t1 : term) (t2 : term) =
+  App(App(Const "NotEqual", t1), t2)
+let matchNotEqualSort (s : term) : (term * term) option =
+  match s with
+  | App(App(Const "NotEqual", t1), t2) -> Some (t1, t2)
   | _ -> None
 
 type inductive = constructor list

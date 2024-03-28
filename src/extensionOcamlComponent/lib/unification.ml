@@ -17,6 +17,9 @@ type term = MetaVar of id | Lam of term | App of term * term | Var of int
   | Const of string | MetaData of string * term
   (* [@@deriving show] *)
 
+let freshMetaVar (_ : unit) : term = (* TODO: use this later on*)
+  MetaVar (freshId ())
+
 type valueTag = TLam | TVar | TPair | TProj1 | TProj2 | TConst
 
 let getValueTag (t : term) : valueTag option =
