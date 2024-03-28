@@ -18,54 +18,51 @@ let topLevel (ctx : term) (fullCtx : term) : term = App (App(Const "TopLevel", c
 let consSort (name : term) (ctx : term) : term = App (App(Const "Cons", name), ctx)
 
 let spec : inductive = [
-  (
-  let name = freshMetaVar () in
-  let ctx = freshMetaVar () in
-  let ctxFull = freshMetaVar () in
-  (* A lambda term definition, like "true = \x y . x"*)
-  {
-    name = "LambdaDefCons";
-    look = [NameHole; NameKeyword "="; NameHole; NameHole];
-    premises = [regexSort name "[A-Za-z]+"; termSort (consSort name ctx); topLevel (consSort name ctx) ctxFull];
-    hiddenPremises = [];
-    conclusion = topLevel ctx ctxFull;
-  });
+  makeRule (fun var -> 
+    {
+      name = "LambdaDefCons";
+      look = [NameHole; NameKeyword "="; NameHole; NameHole];
+      premises = [regexSort (var "name") "[A-Za-z]+"; termSort (consSort (var "name") (var "ctx")); topLevel (consSort (var "name") (var "ctx")) (var "ctxFull")];
+      hiddenPremises = [];
+      conclusion = topLevel (var "ctx") (var "ctxFull");
+      equalities = [];
+      disequalities = [];
+    });
 
-  (
-    let ctx = freshMetaVar () in
+  makeRule (fun var ->
     {
       name = "Nil";
       look = [];
       premises = [];
       hiddenPremises = [];
-      conclusion = topLevel ctx ctx;
-    }
-  );
+      conclusion = topLevel (var "ctx") (var "ctx");
+      equalities = [];
+      disequalities = [];
+    });
 
-  (
-    let name = freshMetaVar () in
-    let ctx = freshMetaVar () in
+  makeRule (fun var ->
     (* A lambda, like "\x . t"*)
     {
       name = "Lambda";
       look = [NameKeyword "\\"; NameHole; NameKeyword "."; NameHole];
-      premises = [regexSort name "[A-Za-z]+"; termSort (consSort name ctx)];
+      premises = [regexSort (var "name") "[A-Za-z]+"; termSort (consSort (var "name") (var "ctx"))];
       hiddenPremises = [];
-      conclusion = termSort ctx;
-    }
-  );
+      conclusion = termSort (var "ctx");
+      equalities = [];
+      disequalities = [];
+    });
 
-  (
-    let ctx = freshMetaVar () in
+  makeRule (fun var ->
     (* An application, like "t t"*)
     {
       name = "Application";
       look = [NameHole; NameHole];
-      premises = [termSort ctx; termSort ctx];
+      premises = [termSort (var "ctx"); termSort (var "ctx")];
       hiddenPremises = [];
-      conclusion = termSort ctx;
-    }
-  );
+      conclusion = termSort (var "ctx");
+      equalities = [];
+      disequalities = [];
+    });
 ]
 
 (*
@@ -126,4 +123,35 @@ CtxContains name1 (cons name2 ctx)
 
  But, can you do this rewriting in general?
  Surely yes, just do the unification yourself. Unless there are remaining unification constraints?
+
+
+ But why do I prefer this design overall to another design:
+ Don't have hidden arguments whatsoever. Instead, have more functions that get evaluated in the terms,
+ including equality and disequality operators which simply get stuck if the inputs are metavariables.
+
+  Honestly, the main motivation is just that this one seems easier to implement in a usable way.
+
+  Consider the linear lambda calculus example. I could have a hidden constraint "OneOf a b c", or I could have a function
+  "oneOf : bool -> bool -> bool -> unit", and something like
+  oneOf a b c = match a, b, c with
+    | f f f -> unit
+    | t f t -> unit
+    | f t f -> unit
+    | _ _ _ -> Error "error message here"
+  
+  Then, the application constructor could have a constraint "oneOf x y z = unit".
+
+  In this case, its equivalent. But in general, the constraint solving approach allows it to discover one of the three values after the first two
+  are known, in any order.
+
+  But, if I were to do it this way by computation in the terms, there would necessarily need to be a match construct.
+  This construct could have a set of cases, and cancel them one-by-one, similar to my hidden-argument solving idea.
+  When only one possible case remains, it would do the necessary unification.
+
+  But then, there would still need to be disequalities in the match cases...
+  
+  For that matter, there could be no inductive relation whatsoever.
+  The entire thing could just be a program which inputs a tree with labelled nodes, and performs this kind of matching.
+
+  But then, you can't use the same information to make other things, like a structure editor.
 *)

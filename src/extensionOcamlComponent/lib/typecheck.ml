@@ -28,12 +28,15 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
   let makeError (errorMessage : errorMessage) : unit =
     errorMessages := errorMessage :: !errorMessages
   in
-  let ctrLookup : constructor StringMap.t = makeFastConstructorLookup lang in
+  let ctrLookup : fullConstructor StringMap.t = makeFastConstructorLookup lang in
 
   (* Either returns a list of new constraints to be solved, or returns None if nothing can be done here. *)
   let processConstraint (ct : sortConstraint) : sortConstraint list option =
-    let fittingCtrs = List.filter_map (fun ctr ->
-      Option.bind (unifyPartially !sub !equations) (fun (sub', equations') ->
+    let fittingCtrs = List.filter_map (fun fctr ->
+      let ctr = freshenRule fctr in
+      let newEqs = [(ct.sort,ctr.conclusion)] @ ctr.equalities in
+      (* TODO: Do something with disequalities!*)
+      Option.bind (unifyPartially !sub (newEqs @ !equations)) (fun (sub', equations') ->
         Some (sub', equations', ctr)
       )
     ) lang in
@@ -57,6 +60,7 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
       ) [] !hiddenJudgements
   in
 
+  (*TODO: Do something with equalities and disequalities!*)
   let rec typecheckImpl (sort : term) (prog : program) : unit =
     match prog with
     | Node ((AstString label, _, _), _) ->
@@ -66,7 +70,7 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
       | None -> raise (Error "no"))
     | Node ((AstNode label, lpos, rpos) , kids) ->
       let pos = {left = lpos; right = rpos;} in
-      let ctr = StringMap.find label ctrLookup in
+      let ctr = freshenRule (StringMap.find label ctrLookup) in
       processConstraints;
       match unifyPartially !sub !equations with
       | None ->

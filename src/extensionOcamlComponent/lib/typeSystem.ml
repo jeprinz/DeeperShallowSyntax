@@ -45,7 +45,43 @@ type constructor = {
   premises : term list;
   hiddenPremises : term list;
   conclusion : term;
+  equalities : (term * term) list;
+  disequalities : (term * term) list;
 }
+
+type fullConstructor = {
+  boundVars : int list;
+  constructor : constructor;
+}
+
+module StringMap = Map.Make (String)
+let makeRule (ruleDesc : (string -> term) -> constructor) : fullConstructor =
+  let varNames = ref StringMap.empty in
+  let var name =
+    match StringMap.find_opt name !varNames with
+    | None -> let i = freshId () in
+      varNames := StringMap.add name i !varNames;
+      MetaVar i
+    | Some i -> MetaVar i
+  in
+  let constructor = ruleDesc var in
+  {
+    boundVars = StringMap.fold (fun _ -> List.cons) !varNames [];
+    constructor;
+  }
+
+let freshenRule (ctr : fullConstructor) : constructor = 
+  let mvarMap = List.fold_right (fun x acc -> let y = freshId () in IntMap.add x (MetaVar y) acc) ctr.boundVars IntMap.empty in
+  let ren = metaSubst mvarMap in
+  let c = ctr.constructor in
+  {
+    c with
+    premises = List.map ren c.premises;
+    hiddenPremises = List.map ren c.hiddenPremises;
+    conclusion = ren c.conclusion;
+    equalities = List.map (fun (x, y) -> ren x, ren y) c.equalities;
+    disequalities = List.map (fun (x, y) -> ren x, ren y) c.disequalities;
+  }
 
 let regexSort (s : term) (regex : string) =
   App(App(Const "Regex", s), Const regex)
@@ -55,20 +91,19 @@ let matchRegexSort (s : term) : (term * string) option =
   | App(App(Const "Regex", s), Const regex) -> Some (s , regex)
   | _ -> None
 
-let notEqualSort (t1 : term) (t2 : term) =
+(* let notEqualSort (t1 : term) (t2 : term) =
   App(App(Const "NotEqual", t1), t2)
 let matchNotEqualSort (s : term) : (term * term) option =
   match s with
   | App(App(Const "NotEqual", t1), t2) -> Some (t1, t2)
-  | _ -> None
+  | _ -> None *)
 
-type inductive = constructor list
+type inductive = fullConstructor list
 
 type program = string ast
 
-module StringMap = Map.Make (String)
-let makeFastConstructorLookup (lang : inductive) : constructor StringMap.t =
-  List.fold_right (fun ctr acc -> StringMap.add ctr.name ctr acc) lang StringMap.empty
+let makeFastConstructorLookup (lang : inductive) : fullConstructor StringMap.t =
+  List.fold_right (fun ctr acc -> StringMap.add ctr.constructor.name ctr acc) lang StringMap.empty
 
 (* TODO: deal with the "Regex" special relation. *)
 
@@ -76,7 +111,7 @@ let makeFastConstructorLookup (lang : inductive) : constructor StringMap.t =
 
 (* This assumes that the number of children for each naming correctly corresponds to the number of premises *)
 let makeParser (lang : inductive) : (term, string) language =
-  List.map ( fun ({name; look; premises; conclusion; _}) ->
+  List.map ( fun ({constructor= {name; look; premises; conclusion; _}; _}) ->
     let i : int ref = ref 0 in
     let pattern = List.map (fun nc ->
       match nc with
