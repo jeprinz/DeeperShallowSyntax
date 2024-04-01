@@ -49,18 +49,18 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
         if not (List.for_all (fun (t1, t2) ->
           not (reducedAreDefinitelyUnequal (reduce !sub t1) (reduce !sub t2)))
           ctr.disequalities) then None else
-        Some (sub', ctr.equalities @ equations', ctr, ctr.disequalities)
+        Some (sub', ctr.equalities @ equations', ctr)
       )
     ) lang in
     match fittingCtrs with
     | [] -> 
         makeError {pos = ct.pos; message = "Constraint had no solution";};
         Some []
-    | (sub', equations', ctr, newDisequalities) :: [] ->
+    | (sub', equations', ctr) :: [] ->
         (* If there is exactly one matching constructor, then we need to update the various enviroment to reflect the new constraints added.*)
         sub := sub';
         equations := equations';
-        disequalityConstraints := (List.map (fun disequality -> {disequality; pos = ct.pos}) newDisequalities) @ !disequalityConstraints;
+        disequalityConstraints := (List.map (fun disequality -> {disequality; pos = ct.pos}) ctr.disequalities) @ !disequalityConstraints;
         let sorts = ctr.premises @ ctr.hiddenPremises in
         Some (List.map (fun sort -> {pos= ct.pos; sort}) sorts)
     | _ -> None

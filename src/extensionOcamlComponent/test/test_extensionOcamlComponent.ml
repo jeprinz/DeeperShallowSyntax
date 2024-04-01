@@ -1,4 +1,8 @@
 open ExtensionOcamlComponent.Parsing
+open ExtensionOcamlComponent.SpecSpec
+open ExtensionOcamlComponent.TypeSystem
+open ExtensionOcamlComponent.Typecheck
+open ExtensionOcamlComponent.Unification
 
 let exampleRules : (string, string) language = [
   (* Rule ("App", "Term", [SortPattern "Term"; SortPattern "Term"]); *)
@@ -19,8 +23,30 @@ let exampleRules : (string, string) language = [
   match t with
   | Node(_, children) -> 1 + List.fold_right (fun x y -> x + y) (List.map tree_size children) 0 *)
 
-let _ =
-  match (doParse exampleRules ["(1 + 2) + 3"] "Term" (fun x y -> x = y)) with
+let exampleProgram = {|
+
+|}
+
+let testSpecSpec =
+  let parserSpec = makeParser spec in
+  let code = [
+    "f = \\ a . b";
+    "g = x";
+  ] in
+  let parsed = doParse parserSpec code
+    (topLevel (MetaVar (freshId ())) (MetaVar (freshId ())))
+    (fun x y -> Option.is_some (unify [x, y])) in
+  match parsed with
   | Ok t -> print_endline (show_tree show_ast_label t)
-  (* | Ok t -> print_endline (string_of_int (tree_size t)) *)
   | Error msg -> print_endline msg
+
+let _ =
+  (* match (doParse exampleRules ["(1 + 2) + 3"] "Term" (fun x y -> x = y)) with
+  | Ok t -> print_endline (show_tree show_ast_label t)
+  | Error msg -> print_endline msg *)
+
+  testSpecSpec;
+
+  print_endline (string_of_bool (Option.is_some (unify [App (Const "a", MetaVar (freshId ())), App (Const "b", MetaVar (freshId ()))])));
+  print_endline (string_of_bool (Option.is_some (unify [Pair (Const "a", MetaVar (freshId ())), Pair (Const "b", MetaVar (freshId ()))])));
+  print_endline (string_of_bool (Option.is_some (unify [topLevel (MetaVar (freshId ())) (MetaVar (freshId ())), termSort (MetaVar (freshId ()))])))

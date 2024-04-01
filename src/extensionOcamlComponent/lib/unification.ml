@@ -108,15 +108,26 @@ let show_equations (eqs : equation list) : string =
 let show_sub (env : sub) : string = show_list (List.map (fun (id, term) -> show_id id ^ " ~~>" ^ show_term term) (List.of_seq (IntMap.to_seq env)))
 
 (** Given two neutral-like terms n1 and n2, then if n1 t1 = n2 t2, then t1 = t2 and n1 = n2.*)
-let rec neutralLike (t : term) : bool =
+(* let rec neutralLike (t : term) : bool =
   match t with
   | Var _ -> true
+  | Const _ -> true (*TODO: Is this right?*)
   (* | Proj1 _ -> true
   | Proj2 _ -> true
   | Pair _ -> true *)
   | App (t, _) -> neutralLike t
   | MetaData (_, t) -> neutralLike t
-  | _ -> false
+  | _ -> false *)
+
+(** Given two neutral-like terms t1 = (x a1 ... an) and t2 = (y b1 ... bn), then if t1 = t2, x = y and ai = bi.*)
+let rec neutralLike (t : term) : (term * term list) option =
+  match t with
+  | Var _ -> Some (t, [])
+  | Const _ -> Some (t, [])
+  | App (t1, t2) ->
+      Option.bind (neutralLike t1) (fun (x, ts) -> Some (x, ts @ [t2]))
+  | MetaData (_, t) -> neutralLike t
+  | _ -> None
 
 
 (** TODO: Terms should be expanded at top level enough to start matching on them (call-by-name)
@@ -243,7 +254,13 @@ let rec processEq : (equation -> (equation list) option) unifyM =
   | t1, MetaVar x when IntMap.mem x !env -> processEq env (t1, IntMap.find x !env)
   | MetaVar x , MetaVar x' when x = x' -> Some []
   | MetaVar x, t | t , MetaVar x -> env := IntMap.add x t !env ; Some []
-  | (App (n1,t1), App (n2, t2)) when neutralLike n1 && neutralLike n2 -> Some [(n1, n2); (t1, t2)]
+  | t1, t2 when Option.is_some (neutralLike t1) && Option.is_some (neutralLike t2) ->
+      Option.bind (neutralLike t1) (fun (x1, args1) ->
+        Option.bind (neutralLike t2) (fun (x2, args2) ->
+          if not (List.length args1 == List.length args2) then raise ifFail else
+          Some ((x1, x2) :: List.map2 (fun arg1 arg2 -> arg1, arg2) args1 args2)
+      ))
+      (* Some [(n1, n2); (t1, t2)] *)
   | App (MetaVar x, Var n), App (MetaVar y, Var n') when n = n' -> Some [(MetaVar x, MetaVar y)] (* TODO: I think that this case and the next are redundant with the X x = t case!*)
   | App (MetaVar x, Pair (Var a, Var b)), App (MetaVar y, Pair (Var a', Var b'))
     when a = a' && b = b' && a <> b -> Some [(MetaVar x, MetaVar y)]
@@ -290,7 +307,9 @@ let unify (eqs:equation list) : (sub * equation list) option =
     let sub = ref IntMap.empty in
     let finalEqs = unifyImpl sub false eqs [] in
     Some (!sub, finalEqs)
-  with Failure(t1, t2) -> print_endline ("unify failed with: " ^ show_term t1 ^ " != " ^ show_term t2 ); None
+  with Failure(t1, t2) ->
+    (* print_endline ("unify failed with: " ^ show_term t1 ^ " != " ^ show_term t2 ); *)
+    None
 
 let unifyPartially (env : sub) (eqs : equation list) : (sub * equation list) option =
   try

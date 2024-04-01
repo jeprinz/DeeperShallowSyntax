@@ -16,6 +16,7 @@ Term gamma (arrow a b)
 let termSort (ctx : term) : term = App (Const "Term", ctx)
 let topLevel (ctx : term) (fullCtx : term) : term = App (App(Const "TopLevel", ctx), fullCtx)
 let consSort (name : term) (ctx : term) : term = App (App(Const "Cons", name), ctx)
+let ctxContainsSort (name : term) (ctx : term) : term = App (App(Const "CtxContains", name), ctx)
 
 let spec : inductive = [
   makeRule (fun var -> 
@@ -63,9 +64,56 @@ let spec : inductive = [
       equalities = [];
       disequalities = [];
     });
+
+  makeRule (fun var -> {
+      name = "Var";
+      look = [NameHole];
+      premises = [regexSort (var "name") "[A-Za-z]"];
+      hiddenPremises = [ctxContainsSort (var "name") (var "ctx")];
+      conclusion = termSort (var "ctx");
+      equalities = [];
+      disequalities = [];
+  });
+
+  makeRule (fun var -> {
+      name = "VarZero";
+      look = [];
+      premises = [];
+      hiddenPremises = [];
+      conclusion = ctxContainsSort (var "name") (consSort (var "name") (var "ctx"));
+      equalities = [];
+      disequalities = [];
+  });
+
+  makeRule (fun var -> {
+      name = "VarSuc";
+      look = [NameHole];
+      premises = [ctxContainsSort (var "name1") (var "ctx")];
+      hiddenPremises = [];
+      conclusion = ctxContainsSort (var "name") (consSort (var "name") (var "ctx"));
+      equalities = [];
+      disequalities = [var "name1", var "name2"];
+  });
 ]
 
 (*
+
+Regex name [name]
+{CtxContains name ctx}
+----------------------- "_" Var
+Term ctx
+
+
+---------------------------------- "" VarZero
+CtxContains name (cons name ctx)
+
+
+NotEqual name1 name2
+CtxContains name1 ctx
+------------------------------------ "" VarSuc
+CtxContains name1 (cons name2 ctx)
+
+
 ------------------- "" Nil
 TopLevel ctx ctx
 
@@ -85,25 +133,13 @@ Term ctx
 ---------------------- "_ _" Application
 Term ctx
 
-Regex name [name]
-{CtxContains name ctx}
------------------------ "_" Var
-Term ctx
-
-
----------------------------------- VarZero
-CtxContains name (cons name ctx)
-
-
-NotEqual name1 name2
-CtxContains name1 ctx
------------------------------------- VarSuc
-CtxContains name1 (cons name2 ctx)
-
 *)
 
 (* TODO: I may want to add a new pattern to the parser (and a new nameComponent) for newlines.
    This successfully matches if skipWhitespace skipped a nonzero number of lines.*)
+
+(* TODO: I may want to make these rules actually build up the lambda terms themselves at sorts. Well, that doesn't quite
+   work fully because I need to deal with metavariables somehow. *)
 
 (*
  PROBLEM: My whole plan doesn't quite work with regards to using a "NotEqual" relation to disallow certian cases.
