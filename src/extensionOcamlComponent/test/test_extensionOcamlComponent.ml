@@ -4,7 +4,7 @@ open ExtensionOcamlComponent.TypeSystem
 open ExtensionOcamlComponent.Typecheck
 open ExtensionOcamlComponent.Unification
 
-let exampleRules : (string, string) language = [
+(* let exampleRules : (string, string) language = [
   (* Rule ("App", "Term", [SortPattern "Term"; SortPattern "Term"]); *)
   (* Rule ("Var", "Term", [RegPattern (Str.regexp {|[A-Za-z]+|})]); *)
   (* Rule ("Paren", "Term", [Keyword "("; SortPattern "Term"; Keyword ")"]); *)
@@ -17,28 +17,36 @@ let exampleRules : (string, string) language = [
   Rule ("Plus", "Term", [SortPattern "Term"; Keyword "+"; SortPattern "Term"]);
   Rule ("Paren", "Term", [Keyword "("; SortPattern "Term"; Keyword ")"]);
 
-]
+] *)
 
 (* let rec tree_size (t : 'label tree) : int =
   match t with
   | Node(_, children) -> 1 + List.fold_right (fun x y -> x + y) (List.map tree_size children) 0 *)
 
-let exampleProgram = {|
+(* let exampleProgram = {|
 
-|}
+|} *)
 
 let testSpecSpec =
   let parserSpec = makeParser spec in
   let code = [
-    "f = \\ a . b";
-    "g = x";
+    "f = \\ a . a";
+    "g = \\ x . ??? ";
+    (* "???"; *)
   ] in
+  (* let topSort = (topLevel (MetaVar (freshId ())) (MetaVar (freshId ()))) in *)
+  let topSort = (topLevel nilSort (MetaVar (freshId ()))) in
   let parsed = doParse parserSpec code
-    (topLevel (MetaVar (freshId ())) (MetaVar (freshId ())))
+    topSort
     (fun x y -> Option.is_some (unify [x, y])) in
   match parsed with
-  | Ok t -> print_endline (show_tree show_ast_label t)
   | Error msg -> print_endline msg
+  | Ok t ->
+    print_endline "parsed AST:";
+    print_endline (show_tree show_ast_label t);
+    let typeErrors = typecheck spec topSort t in
+    print_endline "errors:";
+    List.iter (fun err -> print_endline (show_errorMessasge err)) typeErrors
 
 let _ =
   (* match (doParse exampleRules ["(1 + 2) + 3"] "Term" (fun x y -> x = y)) with
@@ -47,6 +55,6 @@ let _ =
 
   testSpecSpec;
 
-  print_endline (string_of_bool (Option.is_some (unify [App (Const "a", MetaVar (freshId ())), App (Const "b", MetaVar (freshId ()))])));
+  (* print_endline (string_of_bool (Option.is_some (unify [App (Const "a", MetaVar (freshId ())), App (Const "b", MetaVar (freshId ()))])));
   print_endline (string_of_bool (Option.is_some (unify [Pair (Const "a", MetaVar (freshId ())), Pair (Const "b", MetaVar (freshId ()))])));
-  print_endline (string_of_bool (Option.is_some (unify [topLevel (MetaVar (freshId ())) (MetaVar (freshId ())), termSort (MetaVar (freshId ()))])))
+  print_endline (string_of_bool (Option.is_some (unify [topLevel (MetaVar (freshId ())) (MetaVar (freshId ())), termSort (MetaVar (freshId ()))]))) *)

@@ -9,6 +9,9 @@ type errorMessage = {
   message : string;
 }
 
+let show_errorMessasge (e : errorMessage) : string =
+  "Error at " ^ show_position e.pos.left ^ "-" ^ show_position e.pos.right ^ ": " ^ e.message
+
 type sortConstraint = {
   pos : spanPosition;
   sort : term;
@@ -94,7 +97,7 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
       let pos = {left = lpos; right = rpos;} in
       let ctr = freshenRule (StringMap.find label ctrLookup) in
       processConstraints;
-      match unifyPartially !sub !equations with
+      match unifyPartially !sub ((sort, ctr.conclusion) :: ctr.equalities @ !equations) with
       | None ->
         (* TODO: I could have it keep track of whichever parts of the sub did work successfully, and still try unifying the children. For now, I'll go with the simple option.*)
         makeError {pos; message = "unification failed here";};
@@ -115,6 +118,6 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
   typecheckImpl topSort prog;
   processConstraints;
   processDisequalities; (* TODO: Should I call this throught inference as well? What would be the benefit - no facts can be deduced which help elsewhere?*)
-  let leftoverConstraintErrors = List.map (fun ({pos; _} : sortConstraint) -> {pos; message= "Constraint unresolved at end."}) !hiddenJudgements in
+  let leftoverConstraintErrors = List.map (fun ({pos; sort} : sortConstraint) -> {pos; message= "Constraint unresolved at end: " ^ show_term (metaSubst !sub sort)}) !hiddenJudgements in
   let leftoverDisequalityErrors = List.map (fun {pos; _} -> {pos; message = "Disequality unresolved at end."}) !disequalityConstraints in
   leftoverConstraintErrors @ leftoverDisequalityErrors @ !errorMessages

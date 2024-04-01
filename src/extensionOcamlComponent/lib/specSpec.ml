@@ -15,7 +15,8 @@ Term gamma (arrow a b)
 
 let termSort (ctx : term) : term = App (Const "Term", ctx)
 let topLevel (ctx : term) (fullCtx : term) : term = App (App(Const "TopLevel", ctx), fullCtx)
-let consSort (name : term) (ctx : term) : term = App (App(Const "Cons", name), ctx)
+let consSort (name : term) (ctx : term) : term = App (App(Const "CtxCons", name), ctx)
+let nilSort : term = Const "CtxNil"
 let ctxContainsSort (name : term) (ctx : term) : term = App (App(Const "CtxContains", name), ctx)
 
 let spec : inductive = [
@@ -94,6 +95,16 @@ let spec : inductive = [
       equalities = [];
       disequalities = [var "name1", var "name2"];
   });
+
+  makeRule (fun var -> {
+      name = "MetaHole";
+      look = [NameKeyword "???"];
+      premises = [];
+      hiddenPremises = [App(Const "MetaHoleWas:", var "anything")];
+      conclusion = (var "anything");
+      equalities = [];
+      disequalities = [];
+  })
 ]
 
 (*
