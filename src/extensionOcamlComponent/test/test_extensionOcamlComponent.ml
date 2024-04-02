@@ -31,7 +31,7 @@ let testSpecSpec =
   let parserSpec = makeParser spec in
   let code = [
     "f = \\ a . a";
-    "g = \\ x . ??? ";
+    "g = \\ x . f ";
     (* "???"; *)
   ] in
   (* let topSort = (topLevel (MetaVar (freshId ())) (MetaVar (freshId ()))) in *)

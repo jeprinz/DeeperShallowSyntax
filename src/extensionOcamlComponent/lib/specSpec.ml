@@ -91,12 +91,12 @@ let spec : inductive = [
       look = [NameHole];
       premises = [ctxContainsSort (var "name1") (var "ctx")];
       hiddenPremises = [];
-      conclusion = ctxContainsSort (var "name") (consSort (var "name") (var "ctx"));
+      conclusion = ctxContainsSort (var "name1") (consSort (var "name2") (var "ctx"));
       equalities = [];
       disequalities = [var "name1", var "name2"];
   });
 
-  makeRule (fun var -> {
+  (* makeRule (fun var -> {
       name = "MetaHole";
       look = [NameKeyword "???"];
       premises = [];
@@ -104,7 +104,7 @@ let spec : inductive = [
       conclusion = (var "anything");
       equalities = [];
       disequalities = [];
-  })
+  }) *)
 ]
 
 (*

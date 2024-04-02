@@ -46,18 +46,17 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
     let fittingCtrs = List.filter_map (fun fctr ->
       let ctr = freshenRule fctr in
       let newEqs = [(ct.sort,ctr.conclusion)] @ ctr.equalities in
-      (* TODO: Do something with disequalities!*)
       Option.bind (unifyPartially !sub (newEqs @ !equations)) (fun (sub', equations') ->
-        (* If not all the disequalities may hold, then the constructor doesn't fit *)
-        if not (List.for_all (fun (t1, t2) ->
-          not (reducedAreDefinitelyUnequal (reduce !sub t1) (reduce !sub t2)))
-          ctr.disequalities) then None else
+        (* If any of the disequalities is actually in fact equal, then this constructor isn't possible: *)
+        if
+          not (List.for_all (fun (t1, t2) -> norm (metaSubst sub' t1) <> norm (metaSubst sub' t2)) ctr.disequalities)
+          then None else
         Some (sub', ctr.equalities @ equations', ctr)
       )
     ) lang in
     match fittingCtrs with
     | [] -> 
-        makeError {pos = ct.pos; message = "Constraint had no solution";};
+        makeError {pos = ct.pos; message = "Constraint had no solution: " ^ show_term (metaSubst !sub ct.sort);};
         Some []
     | (sub', equations', ctr) :: [] ->
         (* If there is exactly one matching constructor, then we need to update the various enviroment to reflect the new constraints added.*)
@@ -66,10 +65,12 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
         disequalityConstraints := (List.map (fun disequality -> {disequality; pos = ct.pos}) ctr.disequalities) @ !disequalityConstraints;
         let sorts = ctr.premises @ ctr.hiddenPremises in
         Some (List.map (fun sort -> {pos= ct.pos; sort}) sorts)
-    | _ -> None
+    | _ ->
+      print_endline ("Constraint had multiple solutions: " ^ show_term (metaSubst !sub ct.sort) ^ ". They were " ^ (String.concat "," (List.map (fun (_, _, ctr) -> ctr.name) fittingCtrs)));
+      None
   in
 
-  let processConstraints : unit =
+  let processConstraints (_ : unit) : unit =
     hiddenJudgements := List.fold_right (fun j acc -> 
         match processConstraint j with
         | None -> j :: acc
@@ -77,10 +78,11 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
       ) !hiddenJudgements []
   in
 
-  let processDisequalities : unit =
+  let processDisequalities (_ : unit) : unit =
     disequalityConstraints := List.fold_right (fun {pos; disequality=(t1, t2);} acc ->
-      let t1' = reduce !sub t1 in
-      let t2' = reduce !sub t2 in
+      let t1' = norm (metaSubst !sub t1) in
+      let t2' = norm (metaSubst !sub t2) in
+      if t1' = t2' then (makeError {pos; message = "Should not have been equal: " ^ show_term t1' ^ " = " ^ show_term t2'}; acc) else
       if reducedAreDefinitelyUnequal t1' t2' then acc else {pos; disequality = (t1', t2')} :: acc
       ) !disequalityConstraints []
   in
@@ -96,7 +98,7 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
     | Node ((AstNode label, lpos, rpos) , kids) ->
       let pos = {left = lpos; right = rpos;} in
       let ctr = freshenRule (StringMap.find label ctrLookup) in
-      processConstraints;
+      processConstraints ();
       match unifyPartially !sub ((sort, ctr.conclusion) :: ctr.equalities @ !equations) with
       | None ->
         (* TODO: I could have it keep track of whichever parts of the sub did work successfully, and still try unifying the children. For now, I'll go with the simple option.*)
@@ -116,8 +118,10 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
   in
   
   typecheckImpl topSort prog;
-  processConstraints;
-  processDisequalities; (* TODO: Should I call this throught inference as well? What would be the benefit - no facts can be deduced which help elsewhere?*)
+  print_endline "At end of program here";
+  processConstraints ();
+  processDisequalities (); (* TODO: Should I call this throught inference as well? What would be the benefit - no facts can be deduced which help elsewhere?*)
   let leftoverConstraintErrors = List.map (fun ({pos; sort} : sortConstraint) -> {pos; message= "Constraint unresolved at end: " ^ show_term (metaSubst !sub sort)}) !hiddenJudgements in
-  let leftoverDisequalityErrors = List.map (fun {pos; _} -> {pos; message = "Disequality unresolved at end."}) !disequalityConstraints in
+  let leftoverDisequalityErrors = List.map (fun {pos; disequality= (t1, t2)} ->
+    {pos; message = "Disequality unresolved at end: (" ^ show_term (metaSubst !sub t1) ^ " ?= " ^ show_term (metaSubst !sub t2) ^ ")"}) !disequalityConstraints in
   leftoverConstraintErrors @ leftoverDisequalityErrors @ !errorMessages

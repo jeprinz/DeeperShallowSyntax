@@ -206,8 +206,8 @@ let rec reducedAreDefinitelyUnequal (t1 : term) (t2 : term) : bool =
   | Lam(t1'), t2' | t2', Lam(t1') -> reducedAreDefinitelyUnequal t1' t2' (* TODO: is this right? *)
   | Pair(a1, b1), Pair(a2, b2) -> reducedAreDefinitelyUnequal a1 a2 || reducedAreDefinitelyUnequal b1 b2
   | MetaVar _, _ | _, MetaVar _ -> false
-  | Var n1, Var n2 when n1 == n2 -> false
-  | Const s1, Const s2 when s1 == s2 -> false
+  | Var n1, Var n2 -> n1 <> n2
+  | Const s1, Const s2 -> s1 <> s2
   | Proj1, Proj1 | Proj2, Proj2 -> false
   | t1, t2 ->
     match getValueTag t1, getValueTag t2 with (*Note that if t1 or t2 is a lambda, then it can't have been on the left of an App. Likewise, if its a pair, it can't have been in a proj1 or proj2.*)
@@ -307,7 +307,7 @@ let unify (eqs:equation list) : (sub * equation list) option =
     let sub = ref IntMap.empty in
     let finalEqs = unifyImpl sub false eqs [] in
     Some (!sub, finalEqs)
-  with Failure(t1, t2) ->
+  with Failure(_t1, _t2) ->
     (* print_endline ("unify failed with: " ^ show_term t1 ^ " != " ^ show_term t2 ); *)
     None
 
