@@ -43,6 +43,7 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
     If it returns Some, then it also statefully updates the equations, sub, and disequalityConstraints.
      *)
   let processConstraint (ct : sortConstraint) : sortConstraint list option =
+    (* print_endline ("Processing constraint: " ^ show_term (metaSubst !sub ct.sort)); *)
     let fittingCtrs = List.filter_map (fun fctr ->
       let ctr = freshenRule fctr in
       let newEqs = [(ct.sort,ctr.conclusion)] @ ctr.equalities in
@@ -66,16 +67,19 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
         let sorts = ctr.premises @ ctr.hiddenPremises in
         Some (List.map (fun sort -> {pos= ct.pos; sort}) sorts)
     | _ ->
-      print_endline ("Constraint had multiple solutions: " ^ show_term (metaSubst !sub ct.sort) ^ ". They were " ^ (String.concat "," (List.map (fun (_, _, ctr) -> ctr.name) fittingCtrs)));
+      (* print_endline ("Constraint had multiple solutions: " ^ show_term (metaSubst !sub ct.sort) ^ ". They were " ^ (String.concat "," (List.map (fun (_, _, ctr) -> ctr.name) fittingCtrs))); *)
       None
   in
 
-  let processConstraints (_ : unit) : unit =
-    hiddenJudgements := List.fold_right (fun j acc -> 
+  let rec processConstraints (_ : unit) : unit =
+    let cts, changed = List.fold_right (fun j (acc, anyChanged) -> 
         match processConstraint j with
-        | None -> j :: acc
-        | Some js -> js @ acc
-      ) !hiddenJudgements []
+        | None -> j :: acc, anyChanged
+        | Some js -> js @ acc, true
+      ) !hiddenJudgements ([], false)
+    in
+    hiddenJudgements := cts;
+    if changed then processConstraints () else ()
   in
 
   let processDisequalities (_ : unit) : unit =
@@ -99,6 +103,7 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
       let pos = {left = lpos; right = rpos;} in
       let ctr = freshenRule (StringMap.find label ctrLookup) in
       processConstraints ();
+      (* print_endline("At ctr. " ^ ctr.name ^ " unifying: " ^ show_term sort ^ " with " ^ show_term ctr.conclusion ^ " and sub is " ^ show_sub !sub); *)
       match unifyPartially !sub ((sort, ctr.conclusion) :: ctr.equalities @ !equations) with
       | None ->
         (* TODO: I could have it keep track of whichever parts of the sub did work successfully, and still try unifying the children. For now, I'll go with the simple option.*)
@@ -109,6 +114,7 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
         disequalityConstraints := List.map (fun t -> {disequality = t; pos}) ctr.disequalities @ !disequalityConstraints;
         sub := sub';
         equations := equations';
+        (* print_endline ("Now after unify, sub is: " ^ show_sub !sub); *)
         let _ = List.map2 (fun sort kid ->
           typecheckImpl sort kid
         ) ctr.premises kids

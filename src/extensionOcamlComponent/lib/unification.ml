@@ -63,6 +63,9 @@ module IntMap = Map.Make (Int)
 type sub = term IntMap.t 
 type subList = (int * term) list (*[@@deriving show]*)
 
+let show_sub (s : sub) : string =
+  "{" ^ IntMap.fold (fun key t acc -> string_of_int key ^ " -> " ^ show_term t ^ ", " ^ acc) s "" ^ "}"
+
 let rec metaSubst (menv : sub) (t : term) : term =
   let recur = metaSubst menv in
   match t with
@@ -105,7 +108,7 @@ let show_list (l : string list) : string =
 let show_equations (eqs : equation list) : string =
   show_list (List.map (fun (x,y) -> show_term x ^ " = " ^ show_term y) eqs)
 
-let show_sub (env : sub) : string = show_list (List.map (fun (id, term) -> show_id id ^ " ~~>" ^ show_term term) (List.of_seq (IntMap.to_seq env)))
+(* let show_sub (env : sub) : string = show_list (List.map (fun (id, term) -> show_id id ^ " ~~>" ^ show_term term) (List.of_seq (IntMap.to_seq env))) *)
 
 (** Given two neutral-like terms n1 and n2, then if n1 t1 = n2 t2, then t1 = t2 and n1 = n2.*)
 (* let rec neutralLike (t : term) : bool =

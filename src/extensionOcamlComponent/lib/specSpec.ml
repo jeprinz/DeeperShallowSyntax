@@ -24,7 +24,8 @@ let spec : inductive = [
     {
       name = "LambdaDefCons";
       look = [NameHole; NameKeyword "="; NameHole; NameHole];
-      premises = [regexSort (var "name") "[A-Za-z]+"; termSort (consSort (var "name") (var "ctx")); topLevel (consSort (var "name") (var "ctx")) (var "ctxFull")];
+      (* premises = [regexSort (var "name") "[A-Za-z]+"; termSort (consSort (var "name") (var "ctx")); topLevel (consSort (var "name") (var "ctx")) (var "ctxFull")]; *)
+      premises = [regexSort (var "name") "[A-Za-z]+"; termSort (var "ctxFull"); topLevel (consSort (var "name") (var "ctx")) (var "ctxFull")];
       hiddenPremises = [];
       conclusion = topLevel (var "ctx") (var "ctxFull");
       equalities = [];
@@ -69,7 +70,7 @@ let spec : inductive = [
   makeRule (fun var -> {
       name = "Var";
       look = [NameHole];
-      premises = [regexSort (var "name") "[A-Za-z]"];
+      premises = [regexSort (var "name") "[A-Za-z]+"];
       hiddenPremises = [ctxContainsSort (var "name") (var "ctx")];
       conclusion = termSort (var "ctx");
       equalities = [];
@@ -96,15 +97,15 @@ let spec : inductive = [
       disequalities = [var "name1", var "name2"];
   });
 
-  (* makeRule (fun var -> {
+  makeRule (fun var -> {
       name = "MetaHole";
       look = [NameKeyword "???"];
       premises = [];
       hiddenPremises = [App(Const "MetaHoleWas:", var "anything")];
-      conclusion = (var "anything");
+      conclusion = (termSort (var "anything"));
       equalities = [];
       disequalities = [];
-  }) *)
+  })
 ]
 
 (*
