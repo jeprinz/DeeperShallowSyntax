@@ -1,0 +1,5 @@
+I should make a new field in the constructor type called "messages", which is another list of terms.
+When a message is created, it gets constraint filled like a hiddenConstraint. The only difference is that it
+keeps track of the tree made up by the message, and shows it to the user at that location when it is done.
+
+Maybe I should also consider having a way to show raw terms for debugging purposes? 

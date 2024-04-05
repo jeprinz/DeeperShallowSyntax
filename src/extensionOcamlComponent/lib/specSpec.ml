@@ -18,6 +18,7 @@ let topLevel (ctx : term) (fullCtx : term) : term = App (App(Const "TopLevel", c
 let consSort (name : term) (ctx : term) : term = App (App(Const "CtxCons", name), ctx)
 let nilSort : term = Const "CtxNil"
 let ctxContainsSort (name : term) (ctx : term) : term = App (App(Const "CtxContains", name), ctx)
+let termList (ctx : term) : term = App (Const "TermList", ctx)
 
 let spec : inductive = [
   makeRule (fun var -> 
@@ -105,10 +106,57 @@ let spec : inductive = [
       conclusion = (termSort (var "anything"));
       equalities = [];
       disequalities = [];
-  })
+  });
+
+  makeRule (fun var -> {
+      name = "TermListCons";
+      look = [NameHole; NameKeyword ";"; NameHole];
+      premises = [termSort (var "ctx"); termList (var "ctx")];
+      hiddenPremises = [];
+      conclusion = (termList (var "ctx"));
+      equalities = [];
+      disequalities = [];
+  });
+
+  makeRule (fun var -> {
+      name = "TermListNil";
+      look = [];
+      premises = [];
+      hiddenPremises = [];
+      conclusion = (termList (var "ctx"));
+      equalities = [];
+      disequalities = [];
+  });
+
+  makeRule (fun var -> {
+      name = "TypeRuleCons";
+      look = [NameKeyword "{"; NameHole; NameHole; NameHole; NameHole; NameKeyword "}"];
+      premises = [termList (var "ctx"); regexSort (var "_") "-+"; termSort (var "ctx"); topLevel (var "ctx") (var "ctxFull")];
+      hiddenPremises = [];
+      conclusion = (topLevel (var "ctx") (var "ctxFull"));
+      equalities = [];
+      disequalities = [];
+  });
 ]
 
 (*
+
+Term ctx
+TermList ctx
+------------------------ "_ _" TermListCons
+TermList ctx
+
+------------------------ "" TermListNil
+TermList ctx
+
+{
+  TermList ctx
+  Regex _ "-+"
+  Term ctx
+  TopLevel ctx ctxFull
+-------------------------- "{_ _ _ _}" TypeRuleCons
+  TopLevel ctx ctxFull
+}
 
 Regex name [name]
 {CtxContains name ctx}
