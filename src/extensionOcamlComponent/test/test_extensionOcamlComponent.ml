@@ -34,7 +34,9 @@ let testSpecSpec (_ : unit) =
     (* "g = \\ x . fa "; *)
     (* "???"; *)
     (* "f = \\x. \\y. \\z. x"; *)
-    "f = \\x . x { f; f; f; ---- f }";
+
+
+    "f = \\x . x { f, f, f ---- f }";
   ] in
   (* let topSort = (topLevel (MetaVar (freshId ())) (MetaVar (freshId ()))) in *)
   let topSort = (topLevel nilSort (MetaVar (freshId ()))) in
@@ -45,7 +47,7 @@ let testSpecSpec (_ : unit) =
   | Error msg -> print_endline msg
   | Ok t ->
     print_endline "parsed AST:";
-    print_endline (show_tree show_ast_label t);
+    print_endline (show_tree show_ast_label_short t);
     let typeErrors = typecheck spec topSort t in
     print_endline "errors:";
     List.iter (fun err -> print_endline (show_errorMessasge err)) typeErrors

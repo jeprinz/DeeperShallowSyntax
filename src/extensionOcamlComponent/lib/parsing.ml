@@ -25,6 +25,7 @@ type 'label ast = ('label astLabel * position * position) tree
 
 type 'sort pattern =
   Keyword of string
+  | NewlinePattern
   | RegPattern of regexp
   | SortPattern of 'sort
 
@@ -43,6 +44,13 @@ let show_ast_label ((l, p1, p2) : (string astLabel * position * position)) : str
     | AstNode l -> l
   in
   lString ^ show_position p1 ^ "-" ^ show_position p2
+
+let show_ast_label_short ((l, _p1, _p2) : (string astLabel * position * position)) : string =
+  let lString = match l with
+    | AstString s -> s
+    | AstNode l -> l
+  in
+  lString
 
 (* The parser looks for forms described by rules. Each rule corresponds to a particular kind of node in the
    AST. It consists of a list of patterns, which either describe something that should be present in the text,
@@ -139,6 +147,10 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
             parseImpl remainingLines end_position
               (PNode(above, label, lPos, true, leftChildren @ [Node((AstString (matched_string (List.hd remainingLines)), pos, end_position), [])], patterns'))
           else (newPossibleError ("Expected token matching regex") ; None)
+      | NewlinePattern :: patterns' ->
+        (* TODO: The NewlinePattern doesn't really seem to work. I should either remove it or fix it. *)
+        if posBeforeSpace.lineNumber = pos.lineNumber then ( None)
+        else parseImpl remainingLines pos (PNode(above, label, lPos, anyMatchedYet, leftChildren, patterns'))
       | _ -> (newPossibleError "Had no more patterns to match" ; None)
     )
   in match parseImpl input pos where with
@@ -154,6 +166,7 @@ type 'label internalLabel = NormalLabel of 'label | ConsLabel of 'label | NilLab
 let rewritePattern (p : 'sort pattern) : 'sort internalSort pattern =
   match p with
   | Keyword s -> Keyword s
+  | NewlinePattern -> NewlinePattern
   | RegPattern r -> RegPattern r
   | SortPattern s -> SortPattern (NormalSort s)
 

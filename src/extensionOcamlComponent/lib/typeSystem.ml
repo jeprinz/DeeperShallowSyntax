@@ -36,7 +36,7 @@ let rules : (astSort, astLabel) language = [
 
 (* Representation of a programming language *)
 
-type nameComponent = NameKeyword of string | NameHole
+type nameComponent = NameKeyword of string | NameHole | NameNewline
 type naming = nameComponent list
 
 type constructor = {
@@ -116,6 +116,7 @@ let makeParser (lang : inductive) : (term, string) language =
     let pattern = List.map (fun nc ->
       match nc with
       | NameKeyword str -> Keyword str
+      | NameNewline -> NewlinePattern
       | NameHole ->
         let premise = List.nth premises !i in
         i := !i + 1;

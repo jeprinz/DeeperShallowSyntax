@@ -3,3 +3,9 @@ When a message is created, it gets constraint filled like a hiddenConstraint. Th
 keeps track of the tree made up by the message, and shows it to the user at that location when it is done.
 
 Maybe I should also consider having a way to show raw terms for debugging purposes? 
+
+[ ] - Make it not allow regexes to match whitespace no matter what, by finding the first whitespace character and cutting off the match there.
+[ ] - Finish filling in specSpec, specifically the "look" part. The look should just consider any tokens without whitespace
+    (which requires the previouis TODO to make it possible).
+    Also, underscores should be name holes. But somehow it should be possible to also match underscores themselvesls
+    ?

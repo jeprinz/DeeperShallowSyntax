@@ -110,8 +110,18 @@ let spec : inductive = [
 
   makeRule (fun var -> {
       name = "TermListCons";
-      look = [NameHole; NameKeyword ";"; NameHole];
+      look = [NameHole; NameKeyword ","; NameHole];
       premises = [termSort (var "ctx"); termList (var "ctx")];
+      hiddenPremises = [];
+      conclusion = (termList (var "ctx"));
+      equalities = [];
+      disequalities = [];
+  });
+
+  makeRule (fun var -> {
+      name = "TermListLastCons";
+      look = [NameHole];
+      premises = [termSort (var "ctx")];
       hiddenPremises = [];
       conclusion = (termList (var "ctx"));
       equalities = [];

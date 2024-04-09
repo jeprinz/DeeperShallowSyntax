@@ -4,3 +4,13 @@ Regex s "[A-Za-z]+"
 Term (Cons s gamma a) b 
 |------------------------------------- "fun _ => _"
 Term gamma (arrow a b)
+
+
+After thinking about arbitrary different ways of parsing it, how about:
+
+{
+Regex s "[A-Za-z]+",
+Term (Cons s gamma a) b
+------------------------------------- "fun _ => _"
+Term gamma (arrow a b)
+}
