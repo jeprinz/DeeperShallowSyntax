@@ -143,8 +143,24 @@ let spec : inductive = [
   makeRule (fun var -> {
       name = "TypeRuleCons";
       (* look = [NameKeyword "{"; NameHole; NameHole; NameKeyword "\""; NameHole; NameKeyword "\""; NameHole; NameKeyword "}"; NameHole]; *)
-      look = [NameKeyword "{"; NameHole; NameHole; NameHole; NameHole; NameKeyword "}"; NameHole];
-      premises = [termList (var "ctx"); regexSort (var "_") "-+"; regexSort (var "name") "\".*\""; termSort (var "ctx"); topLevel (var "ctx") (var "ctxFull")];
+      look = [
+        NameKeyword "{";
+        NameHole; (* premises *)
+        NameHole; (* ----------- *)
+        NameKeyword "\"";
+        NameHole; (* name *)
+        NameKeyword "\"";
+        NameHole; (* conclusion *)
+        NameKeyword "}";
+        NameHole];
+      premises = [
+          termList (var "ctx"); (* premises *)
+          regexSort (var "_") "-+"; (* ---------------- *)
+          (* regexSort (var "name") "\".*\""; (* look *) *)
+          nameComponentListSort; (* look *)
+          termSort (var "ctx"); (* conclusion *)
+          topLevel (var "ctx") (var "ctxFull") (* rest of program *)
+        ];
       hiddenPremises = [];
       conclusion = (topLevel (var "ctx") (var "ctxFull"));
       equalities = [];
@@ -154,11 +170,11 @@ let spec : inductive = [
   makeRule (fun var -> {
       name = "NameKeyword";
       look = [NameHole];
-      premises = [regexSort (var "name") "[^\"]+"]; (* Matches 1 or more characters that are not a quotation mark *)
+      premises = [regexSort (var "name") "[^\"_]+"]; (* Matches 1 or more characters that are not a quotation mark or _*)
       hiddenPremises = [];
       conclusion = nameComponentSort;
       equalities = [];
-      disequalities = [(var "name"), Const "_"];
+      disequalities = [];
   });
 
   
@@ -168,6 +184,26 @@ let spec : inductive = [
       premises = [];
       hiddenPremises = [];
       conclusion = nameComponentSort;
+      equalities = [];
+      disequalities = [];
+  });
+
+  makeRule (fun _var -> {
+      name = "NameComponentListNil";
+      look = [];
+      premises = [];
+      hiddenPremises = [];
+      conclusion = nameComponentListSort;
+      equalities = [];
+      disequalities = [];
+  });
+
+  makeRule (fun _var -> {
+      name = "NameComponentListCons";
+      look = [NameHole; NameHole];
+      premises = [nameComponentSort; nameComponentListSort];
+      hiddenPremises = [];
+      conclusion = nameComponentListSort;
       equalities = [];
       disequalities = [];
   });

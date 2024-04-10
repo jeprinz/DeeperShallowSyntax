@@ -27,6 +27,7 @@ open ExtensionOcamlComponent.Unification
 
 |} *)
 
+
 let testSpecSpec (_ : unit) =
   let parserSpec = makeParser spec in
   let code = [
@@ -36,11 +37,11 @@ let testSpecSpec (_ : unit) =
     (* "f = \\x. \\y. \\z. x"; *)
 
 
-    "f = \\x . x { f, f, f ---- \"example\" f }";
+    "f = \\x . x { f, f, f ---- \" _\" f }";
   ] in
   (* let topSort = (topLevel (MetaVar (freshId ())) (MetaVar (freshId ()))) in *)
   let topSort = (topLevel nilSort (MetaVar (freshId ()))) in
-  let parsed = doParse parserSpec (fun l -> l) code
+  let parsed = doParse parserSpec (fun x -> x) show_term code
     topSort
     (fun x y -> Option.is_some (unify [x, y])) in
   match parsed with
