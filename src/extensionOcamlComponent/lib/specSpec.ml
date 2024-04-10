@@ -19,6 +19,8 @@ let consSort (name : term) (ctx : term) : term = App (App(Const "CtxCons", name)
 let nilSort : term = Const "CtxNil"
 let ctxContainsSort (name : term) (ctx : term) : term = App (App(Const "CtxContains", name), ctx)
 let termList (ctx : term) : term = App (Const "TermList", ctx)
+let nameComponentSort  : term = Const "NameComponent"
+let nameComponentListSort : term = Const "NameComponentList"
 
 let spec : inductive = [
   makeRule (fun var -> 
@@ -148,6 +150,28 @@ let spec : inductive = [
       equalities = [];
       disequalities = [];
   });
+
+  makeRule (fun var -> {
+      name = "NameKeyword";
+      look = [NameHole];
+      premises = [regexSort (var "name") "[^\"]+"]; (* Matches 1 or more characters that are not a quotation mark *)
+      hiddenPremises = [];
+      conclusion = nameComponentSort;
+      equalities = [];
+      disequalities = [(var "name"), Const "_"];
+  });
+
+  
+  makeRule (fun _var -> {
+      name = "NameHole";
+      look = [NameKeyword "_"];
+      premises = [];
+      hiddenPremises = [];
+      conclusion = nameComponentSort;
+      equalities = [];
+      disequalities = [];
+  });
+
 ]
 
 (*

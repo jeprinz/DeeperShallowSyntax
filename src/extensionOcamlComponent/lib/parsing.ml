@@ -94,6 +94,12 @@ let rec skipLeadingWhitespace (lines : string list) (pos : position) : (string l
         skipLeadingWhitespace lines {pos with posInLine = whitespaceEnd}
       else ifNone
 
+let firstWhitespace (s : string) (starting_pos : int) : int option =
+  try
+    Some (Str.search_forward (Str.regexp "[ \n\r\x0c\t]") s starting_pos)
+  with
+    Not_found -> None
+
 (*
 This function parses a string according to a list of rules. It returns the AST if the parse was successful.  
 The output tree contains labels, and a pair of integers which are the positions in the input string corresponding to that node.
@@ -144,9 +150,13 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
         if remainingLines = [] then (newPossibleError "Extra stuff" ; None) else
         if Str.string_match expected (List.hd remainingLines) pos.posInLine
           then
-            let end_position = {pos with posInLine = Str.match_end ()} in
+            let match_end = Str.match_end () in
+            let matched_string = matched_string (List.hd remainingLines) in
+            (* Never allows a regex to match more than one word in between whitespace *)
+            let endOfMatch = match firstWhitespace (List.hd remainingLines) pos.posInLine with Some ws_pos -> min ws_pos match_end  | None -> match_end in
+            let end_position = {pos with posInLine = endOfMatch} in
             parseImpl remainingLines end_position
-              (PNode(above, label, lPos, true, leftChildren @ [Node((AstString (matched_string (List.hd remainingLines)), pos, end_position), [])], patterns'))
+              (PNode(above, label, lPos, true, leftChildren @ [Node((AstString matched_string, pos, end_position), [])], patterns'))
           else (newPossibleError ("Expected token matching regex") ; None)
       | NewlinePattern :: patterns' ->
         (* TODO: The NewlinePattern doesn't really seem to work. I should either remove it or fix it. *)

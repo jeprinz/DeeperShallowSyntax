@@ -73,7 +73,7 @@ let _ =
   print_endline (string_of_bool (Option.is_some (unify [Pair (Const "a", MetaVar (freshId ())), Pair (Const "b", MetaVar (freshId ()))])));
   print_endline (string_of_bool (Option.is_some (unify [topLevel (MetaVar (freshId ())) (MetaVar (freshId ())), termSort (MetaVar (freshId ()))]))) *)
 
-  (* let str = "\"bbb\" ccc" in
-  let _ = (Str.string_match (Str.regexp "\".*\"") str 0) in
+  (* let str = "bb\"ssb" in
+  let _ = (Str.string_match (Str.regexp "[^\"]+") str 0) in
   print_endline (Str.matched_string str); *)
 
