@@ -140,8 +140,9 @@ let spec : inductive = [
 
   makeRule (fun var -> {
       name = "TypeRuleCons";
-      look = [NameKeyword "{"; NameHole; NameHole; NameHole; NameHole; NameKeyword "}"];
-      premises = [termList (var "ctx"); regexSort (var "_") "-+"; termSort (var "ctx"); topLevel (var "ctx") (var "ctxFull")];
+      (* look = [NameKeyword "{"; NameHole; NameHole; NameKeyword "\""; NameHole; NameKeyword "\""; NameHole; NameKeyword "}"; NameHole]; *)
+      look = [NameKeyword "{"; NameHole; NameHole; NameHole; NameHole; NameKeyword "}"; NameHole];
+      premises = [termList (var "ctx"); regexSort (var "_") "-+"; regexSort (var "name") "\".*\""; termSort (var "ctx"); topLevel (var "ctx") (var "ctxFull")];
       hiddenPremises = [];
       conclusion = (topLevel (var "ctx") (var "ctxFull"));
       equalities = [];

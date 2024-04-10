@@ -36,11 +36,11 @@ let testSpecSpec (_ : unit) =
     (* "f = \\x. \\y. \\z. x"; *)
 
 
-    "f = \\x . x { f, f, f ---- f }";
+    "f = \\x . x { f, f, f ---- \"example\" f }";
   ] in
   (* let topSort = (topLevel (MetaVar (freshId ())) (MetaVar (freshId ()))) in *)
   let topSort = (topLevel nilSort (MetaVar (freshId ()))) in
-  let parsed = doParse parserSpec code
+  let parsed = doParse parserSpec (fun l -> l) code
     topSort
     (fun x y -> Option.is_some (unify [x, y])) in
   match parsed with
@@ -72,3 +72,8 @@ let _ =
   (* print_endline (string_of_bool (Option.is_some (unify [App (Const "a", MetaVar (freshId ())), App (Const "b", MetaVar (freshId ()))])));
   print_endline (string_of_bool (Option.is_some (unify [Pair (Const "a", MetaVar (freshId ())), Pair (Const "b", MetaVar (freshId ()))])));
   print_endline (string_of_bool (Option.is_some (unify [topLevel (MetaVar (freshId ())) (MetaVar (freshId ())), termSort (MetaVar (freshId ()))]))) *)
+
+  (* let str = "\"bbb\" ccc" in
+  let _ = (Str.string_match (Str.regexp "\".*\"") str 0) in
+  print_endline (Str.matched_string str); *)
+

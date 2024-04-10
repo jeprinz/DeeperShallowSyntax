@@ -99,6 +99,7 @@ This function parses a string according to a list of rules. It returns the AST i
 The output tree contains labels, and a pair of integers which are the positions in the input string corresponding to that node.
 *)
 let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
+  (show_rule : 'label -> string)
   (input : string list) (pos : position) (where : ('sort, 'label) path) : ('label ast, (string * position)) result =
   (* In order to keep track of errors, whenever it backtracks it remembers the furthest position it got to. We assume this is where the error is. *)
   let furthestPos : position ref = ref {lineNumber = 0; posInLine = 0} in
@@ -132,7 +133,7 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
       match patterns with
       | SortPattern sort :: patterns' -> findRule sort (PNode (above, label, lPos, anyMatchedYet, leftChildren, patterns'))
       | Keyword expected :: patterns' ->
-        if remainingLines = [] then (newPossibleError "Extra stuff" ; None) else
+        if remainingLines = [] then (newPossibleError ("Expected " ^ expected ^ " and " ^ string_of_int (List.length patterns') ^ " patterns left") ; None) else
         if String.length (List.hd remainingLines) >= pos.posInLine + (String.length expected) &&
           expected = String.sub (List.hd remainingLines) pos.posInLine (String.length expected)
           then
@@ -162,6 +163,13 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
 
 type 'sort internalSort = NormalSort of 'sort | ListSort of 'sort
 type 'label internalLabel = NormalLabel of 'label | ConsLabel of 'label | NilLabel | OfListLabel
+
+let show_internalLabel (show_label : 'label -> string) (l : 'label internalLabel) : string =
+  match l with
+  | NormalLabel l -> show_label l
+  | ConsLabel l -> "Cons " ^ show_label l
+  | NilLabel -> "Nil"
+  | OfListLabel -> "OfList"
 
 let rewritePattern (p : 'sort pattern) : 'sort internalSort pattern =
   match p with
@@ -223,8 +231,8 @@ and unravelList (inside : 'label ast) (t : 'label internalLabel ast) : 'label as
     )
   | _ -> raise (Error "unravelList")
 
-let doParse (lang : ('sort, 'label) language) (lines : string list) (topSort : 'sort) (compare : 'sort -> 'sort -> bool) : ('label ast, string) result =
+let doParse (lang : ('sort, 'label) language) (show_rule : 'label -> string) (lines : string list) (topSort : 'sort) (compare : 'sort -> 'sort -> bool) : ('label ast, string) result =
   let internalRules = rewriteRules compare lang in
-  match (parse (rewriteCompare compare) internalRules lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) with
+  match (parse (rewriteCompare compare) internalRules (show_internalLabel show_rule) lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) with
   | Ok ast -> Ok (convertBack ast)
   | Error (msg, pos) -> Error ("At " ^ show_position pos ^ " " ^ msg)

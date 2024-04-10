@@ -4,6 +4,14 @@ keeps track of the tree made up by the message, and shows it to the user at that
 
 Maybe I should also consider having a way to show raw terms for debugging purposes? 
 
+
+
+The main thing I need to figure out how is how to make a language for describing syntax that can capture itself.
+I could just have part of it that it processes afterwards, but it would be nice if I didn't need that.
+
+
+
+
 [ ] - Make it not allow regexes to match whitespace no matter what, by finding the first whitespace character and cutting off the match there.
 [ ] - Finish filling in specSpec, specifically the "look" part. The look should just consider any tokens without whitespace
     (which requires the previouis TODO to make it possible).
