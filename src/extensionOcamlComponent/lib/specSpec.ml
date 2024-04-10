@@ -1,5 +1,6 @@
 open TypeSystem
 open Unification
+open Parsing
 
 (*
 In this file, I define a type system for defining type systems.
@@ -18,16 +19,24 @@ let topLevel (ctx : term) (fullCtx : term) : term = App (App(Const "TopLevel", c
 let consSort (name : term) (ctx : term) : term = App (App(Const "CtxCons", name), ctx)
 let nilSort : term = Const "CtxNil"
 let ctxContainsSort (name : term) (ctx : term) : term = App (App(Const "CtxContains", name), ctx)
-let termList (ctx : term) : term = App (Const "TermList", ctx)
+let premiseList (ctx : term) : term = App (Const "PremiseList", ctx)
+let premise (ctx : term) : term = App (Const "Premise", ctx)
 let nameComponentSort  : term = Const "NameComponent"
 let nameComponentListSort : term = Const "NameComponentList"
+
+(* Inputs an AST parsed from the below spec, and outputs it as a language *)
+let specAstToLang (t : string ast) : inductive =
+  match t with
+  | Node((AstNode label, _, _), kids) -> (match label with
+    | _ -> raise (Error ("Unrecognized label: " ^ label)))
+  | _ -> raise (Error "Ast wasn't of correct form")
+  
 
 let spec : inductive = [
   makeRule (fun var -> 
     {
       name = "LambdaDefCons";
       look = [NameHole; NameKeyword "="; NameHole; NameHole];
-      (* premises = [regexSort (var "name") "[A-Za-z]+"; termSort (consSort (var "name") (var "ctx")); topLevel (consSort (var "name") (var "ctx")) (var "ctxFull")]; *)
       premises = [regexSort (var "name") "[A-Za-z]+"; termSort (var "ctxFull"); topLevel (consSort (var "name") (var "ctx")) (var "ctxFull")];
       hiddenPremises = [];
       conclusion = topLevel (var "ctx") (var "ctxFull");
@@ -111,31 +120,61 @@ let spec : inductive = [
   });
 
   makeRule (fun var -> {
-      name = "TermListCons";
-      look = [NameHole; NameKeyword ","; NameHole];
-      premises = [termSort (var "ctx"); termList (var "ctx")];
-      hiddenPremises = [];
-      conclusion = (termList (var "ctx"));
-      equalities = [];
-      disequalities = [];
-  });
-
-  makeRule (fun var -> {
-      name = "TermListLastCons";
+      name = "TermPremise";
       look = [NameHole];
       premises = [termSort (var "ctx")];
       hiddenPremises = [];
-      conclusion = (termList (var "ctx"));
+      conclusion = (premise (var "ctx"));
       equalities = [];
       disequalities = [];
   });
 
   makeRule (fun var -> {
-      name = "TermListNil";
+      name = "EqualityPremise";
+      look = [NameHole; NameKeyword "=="; NameHole];
+      premises = [termSort (var "ctx"); termSort (var "ctx")];
+      hiddenPremises = [];
+      conclusion = (premise (var "ctx"));
+      equalities = [];
+      disequalities = [];
+  });
+
+  makeRule (fun var -> {
+      name = "DisequalityPremise";
+      look = [NameHole; NameKeyword "!="; NameHole];
+      premises = [termSort (var "ctx"); termSort (var "ctx")];
+      hiddenPremises = [];
+      conclusion = (premise (var "ctx"));
+      equalities = [];
+      disequalities = [];
+  });
+
+  makeRule (fun var -> {
+      name = "PremiseListCons";
+      look = [NameHole; NameKeyword ","; NameHole];
+      premises = [premise (var "ctx"); premiseList (var "ctx")];
+      hiddenPremises = [];
+      conclusion = (premiseList (var "ctx"));
+      equalities = [];
+      disequalities = [];
+  });
+
+  makeRule (fun var -> {
+      name = "PremiseListLastCons";
+      look = [NameHole];
+      premises = [premise (var "ctx")];
+      hiddenPremises = [];
+      conclusion = (premiseList (var "ctx"));
+      equalities = [];
+      disequalities = [];
+  });
+
+  makeRule (fun var -> {
+      name = "PremiseListNil";
       look = [];
       premises = [];
       hiddenPremises = [];
-      conclusion = (termList (var "ctx"));
+      conclusion = (premiseList (var "ctx"));
       equalities = [];
       disequalities = [];
   });
@@ -154,7 +193,7 @@ let spec : inductive = [
         NameKeyword "}";
         NameHole];
       premises = [
-          termList (var "ctx"); (* premises *)
+          premiseList (var "ctx"); (* premises *)
           regexSort (var "_") "-+"; (* ---------------- *)
           (* regexSort (var "name") "\".*\""; (* look *) *)
           nameComponentListSort; (* look *)

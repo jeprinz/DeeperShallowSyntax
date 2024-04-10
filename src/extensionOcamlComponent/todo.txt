@@ -12,8 +12,15 @@ I could just have part of it that it processes afterwards, but it would be nice 
 
 
 
-[ ] - Make it not allow regexes to match whitespace no matter what, by finding the first whitespace character and cutting off the match there.
-[ ] - Finish filling in specSpec, specifically the "look" part. The look should just consider any tokens without whitespace
+[x] - Make it not allow regexes to match whitespace no matter what, by finding the first whitespace character and cutting off the match there.
+[x] - Finish filling in specSpec, specifically the "look" part. The look should just consider any tokens without whitespace
     (which requires the previouis TODO to make it possible).
     Also, underscores should be name holes. But somehow it should be possible to also match underscores themselvesls
     ?
+[x] - Equalities and Disequalities in specSpec
+[ ] - Decide how I want constants vs variables to look in the spec language.
+    - Maybe constants are capitalized? Should I write out which variables will be bound locally?
+[ ] - Write code that reads a parsed specSpec ast and builds a lang
+[ ] - Implement the "messages" section of the lang
+[ ] - Write code that prints out a tree of labels, given a lang describing the looks.
+    - Will also need to deal with regexSort stuff.
