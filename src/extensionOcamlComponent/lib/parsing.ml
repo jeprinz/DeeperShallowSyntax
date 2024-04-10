@@ -72,11 +72,12 @@ type ('sort, 'label) path =
   PNode of ('sort, 'label) path * 'label * position * ('label ast list) * ('sort pattern list)
   | Top of 'sort
 
-(* To prevent infinite recursion on left-recursive rules, this function checks any input has been accepted since the last instance of a rule. *)
+(* To prevent infinite recursion on left-recursive rules, this function checks if any input has been accepted since the last instance of a rule. *)
 let rec amILooping (path : ('sort, 'label) path) (ctr : 'label) (pos : position) : bool =
   match path with
-  | PNode (above, label, pos', _, _) ->
-    (label = ctr && pos' = pos) || (amILooping above ctr pos)
+  | PNode (_, _, pos', _, _) when pos' <> pos -> false
+  | PNode (above, label, _, _, _) ->
+    label = ctr || (amILooping above ctr pos)
   | _ -> false
 
 let rec skipLeadingWhitespace (lines : string list) (pos : position) : (string list * position) =
@@ -105,7 +106,7 @@ This function parses a string according to a list of rules. It returns the AST i
 The output tree contains labels, and a pair of integers which are the positions in the input string corresponding to that node.
 *)
 let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
-  (show_rule : 'label -> string)
+  (_show_rule : 'label -> string)
   (show_sort : 'sort -> string)
   (input : string list) (pos : position) (where : ('sort, 'label) path) : ('label ast, (string * position)) result =
   (* In order to keep track of errors, whenever it backtracks it remembers the furthest position it got to. We assume this is where the error is. *)
@@ -121,7 +122,6 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
     let findRule (sort : 'sort) (above : ('sort, 'label) path) =
         List.find_map
           (fun (Rule(newLabel, newSort, newPattern)) ->
-            let _ = if compare newSort sort && amILooping above newLabel pos then (print_endline ("the loop is happening with " ^ show_rule newLabel ^ " and sort " ^ show_sort sort); ()) else () in
             if not (compare newSort sort) || (amILooping above newLabel pos) then
               (newPossibleError ("No rule matches with sort " ^ show_sort sort) ; None)
             else
@@ -155,9 +155,9 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
         if Str.string_match expected (List.hd remainingLines) pos.posInLine
           then
             let match_end = Str.match_end () in
-            let matched_string = matched_string (List.hd remainingLines) in
             (* Never allows a regex to match more than one word in between whitespace *)
             let endOfMatch = match firstWhitespace (List.hd remainingLines) pos.posInLine with Some ws_pos -> min ws_pos match_end  | None -> match_end in
+            let matched_string = String.sub (List.hd remainingLines) pos.posInLine (endOfMatch - pos.posInLine) in
             let end_position = {pos with posInLine = endOfMatch} in
             parseImpl remainingLines end_position
               (PNode(above, label, lPos, leftChildren @ [Node((AstString matched_string, pos, end_position), [])], patterns'))

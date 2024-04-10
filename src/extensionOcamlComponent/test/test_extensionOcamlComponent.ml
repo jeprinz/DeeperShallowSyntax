@@ -37,7 +37,7 @@ let testSpecSpec (_ : unit) =
     (* "f = \\x. \\y. \\z. x"; *)
 
 
-    "f = \\x . x { f, f, f ---- \" _\" f }";
+    "f = \\x . x { f, f, f ---- \" aaaa bbbb cc\" f }";
   ] in
   (* let topSort = (topLevel (MetaVar (freshId ())) (MetaVar (freshId ()))) in *)
   let topSort = (topLevel nilSort (MetaVar (freshId ()))) in
@@ -70,9 +70,10 @@ let _ =
     print_endline ("eqs left: " ^ string_of_int (List.length eq));
     print_endline ("sub: " ^ show_sub sub) *)
 
-  (* print_endline (string_of_bool (Option.is_some (unify [App (Const "a", MetaVar (freshId ())), App (Const "b", MetaVar (freshId ()))])));
-  print_endline (string_of_bool (Option.is_some (unify [Pair (Const "a", MetaVar (freshId ())), Pair (Const "b", MetaVar (freshId ()))])));
-  print_endline (string_of_bool (Option.is_some (unify [topLevel (MetaVar (freshId ())) (MetaVar (freshId ())), termSort (MetaVar (freshId ()))]))) *)
+  (* print_endline (string_of_bool (Option.is_some (unify [App (Const "a", MetaVar (freshId ())), App (Const "b", MetaVar (freshId ()))]))); *)
+  (* print_endline (string_of_bool (Option.is_some (unify [Pair (Const "a", MetaVar (freshId ())), Pair (Const "b", MetaVar (freshId ()))]))); *)
+  (* print_endline (string_of_bool (Option.is_some (unify [Const "aa", Const "ab"]))); *)
+  (* print_endline (string_of_bool (Option.is_some (unify [topLevel (MetaVar (freshId ())) (MetaVar (freshId ())), termSort (MetaVar (freshId ()))]))) *)
 
   (* let str = "bb\"ssb" in
   let _ = (Str.string_match (Str.regexp "[^\"]+") str 0) in
