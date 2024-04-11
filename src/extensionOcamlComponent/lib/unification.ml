@@ -66,6 +66,7 @@ type subList = (int * term) list (*[@@deriving show]*)
 let show_sub (s : sub) : string =
   "{" ^ IntMap.fold (fun key t acc -> string_of_int key ^ " -> " ^ show_term t ^ ", " ^ acc) s "" ^ "}"
 
+(* Assumes that t is closed *)
 let rec metaSubst (menv : sub) (t : term) : term =
   let recur = metaSubst menv in
   match t with

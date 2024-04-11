@@ -36,8 +36,7 @@ let testSpecSpec (_ : unit) =
     (* "???"; *)
     (* "f = \\x. \\y. \\z. x"; *)
 
-
-    "f = \\x . x { f, f, G, f != f f, f == f ---- \" aaaa bbbb cc\" G }";
+    "f = \\x . x g = \\x . x { f, {f}, f, ?g != f f, f == f ---- \" aaaa bbbb cc\" ?g }";
   ] in
   (* let topSort = (topLevel (MetaVar (freshId ())) (MetaVar (freshId ()))) in *)
   let topSort = (topLevel nilSort (MetaVar (freshId ()))) in
