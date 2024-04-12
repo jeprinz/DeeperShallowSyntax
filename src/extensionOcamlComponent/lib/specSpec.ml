@@ -136,7 +136,7 @@ let specAstToLang (t : string ast) : inductive =
   in
   let ctrs = impl t in
   (* This is the lazy inefficient solution. Instead of finding which metavars go to which rule, Im just listing them all as bound for all rules. *)
-  let allMetaVars = StringMap.fold (fun _ id acc -> id :: acc) !globalMvNames [] in
+  let allMetaVars = StringMap.fold (fun _ id acc -> id :: acc) !metavarMvNames [] in
   let lang = List.map (fun ctr -> {constructor = subCtr !globalEnv ctr; boundVars = allMetaVars}) ctrs in
   lang
   

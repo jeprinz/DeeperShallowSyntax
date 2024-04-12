@@ -12,35 +12,52 @@ let testSpecSpec (_ : unit) =
   let langSpec = [
     {|
       {
-        Term, Term
-        ------------ "_ + _"
-        Term
+        Term Num, Term Num
+        ----------------------- "_ + _"
+        Term Num
       }
 
       {
-        Term, Term
-        ------------ "_ - _"
-        Term
+        Term Num, Term Num
+        ---------------------- "_ == _"
+        Term Bool
       }
 
       {
-        ----------- "x"
-        Term
+        ----------- "5"
+        Term Num
       }
 
       {
-        ----------- "y"
-        Term
+        ----------- "true"
+        Term Bool
+      }
+
+      {
+        Term Bool
+        ---------- "tonum _"
+        Term Num
+      }
+
+      {
+        Term Num
+        ---------- "_"
+        Top
+      }
+
+      {
+        Term ?a
+        ------------- "(_)"
+        Term ?a
       }
     |};
   ] in
 
   (* The program to be checked *)
   let program = [
-    (* {|
-      x + y - x
-    |}; *)
-    "x + y - x - x - x - x - x - x - x - x - x - x - x - x";
+    {|
+(tonum ( (5 + 5)== 5))
+    |};
   ] in
   let topSort = (topLevel nilSort (MetaVar (freshId ()))) in
   let parsed = doParse parserSpec (fun x -> x) show_term langSpec
@@ -49,8 +66,8 @@ let testSpecSpec (_ : unit) =
   match parsed with
   | Error msg -> print_endline ("Failed to parse spec: " ^ msg)
   | Ok t ->
-    print_endline "parsed AST of spec:";
-    print_endline (show_tree show_ast_label_short t);
+    (* print_endline "parsed AST of spec:"; *)
+    (* print_endline (show_tree show_ast_label_short t); *)
     let typeErrors = typecheck spec topSort t in
     if List.length typeErrors <> 0 then
       (print_endline "Typechecking errors while checking spec:";
@@ -59,11 +76,12 @@ let testSpecSpec (_ : unit) =
     print_endline "Spec checked correctly, converting to inductive: ";
     let lang = specAstToLang t in
 
-    let topSort = (Const "Term") in
+    let topSort = (Const "Top") in
     let progParser = makeParser lang in (* TODO: This should take sub!*)
     let parsedProg = doParse progParser (fun x -> x) show_term program
       topSort
       (fun x y -> Option.is_some (unify [x, y]))
+      (* (fun _x _y -> true) *)
     in
     match parsedProg with
     | Error msg -> print_endline ("Failed to parse program: " ^ msg)
