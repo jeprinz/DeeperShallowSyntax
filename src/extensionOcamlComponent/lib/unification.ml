@@ -37,7 +37,7 @@ let rec show_term_impl (lamParens : bool) (appParens : bool) (t : term) : string
   | Lam body -> let inside = "λ " ^ show_term_impl false false body in
     if lamParens then "(" ^ inside ^ ")" else inside
   | App (t1, t2) ->
-      let inside = show_term_impl true false t1 ^ " " ^ show_term_impl false true t2 in
+      let inside = show_term_impl true false t1 ^ " " ^ show_term_impl true true t2 in
       if appParens then "(" ^ inside ^ ")" else inside
   | Pair (t1, t2) -> "(" ^ show_term_impl false false t1 ^ "," ^ show_term_impl false false t2 ^ ")"
   | Var n -> show_id n

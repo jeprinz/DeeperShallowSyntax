@@ -36,7 +36,18 @@ let testSpecSpec (_ : unit) =
     (* "???"; *)
     (* "f = \\x. \\y. \\z. x"; *)
 
-    "f = \\x . x g = \\x . x { f, {f}, f, ?g != f f, f == f ---- \" aaaa bbbb cc\" ?g }";
+    (* "f = \\x . x g = \\x . x { f, {f}, f, f, ?g != f f, f == f ---- \" aaaa bbbb cc\" ?g }"; *)
+    {|
+      true = \ x. \ y. x
+      false = \ x. \ y . y
+
+      {
+        true true false,
+        false (false false)
+        ------------ " hello _ bye "
+        false
+      }
+    |};
   ] in
   (* let topSort = (topLevel (MetaVar (freshId ())) (MetaVar (freshId ()))) in *)
   let topSort = (topLevel nilSort (MetaVar (freshId ()))) in
@@ -50,7 +61,12 @@ let testSpecSpec (_ : unit) =
     print_endline (show_tree show_ast_label_short t);
     let typeErrors = typecheck spec topSort t in
     print_endline "errors:";
-    List.iter (fun err -> print_endline (show_errorMessasge err)) typeErrors
+    List.iter (fun err -> print_endline (show_errorMessasge err)) typeErrors;
+    print_endline "About to convert to language: ";
+    let lang, sub = specAstToLang t in
+    print_endline ("Num of ctrs: " ^ string_of_int (List.length lang));
+    print_endline ("Premises of first ctr: " ^ String.concat "; " (List.map (fun t -> show_term (metaSubst sub t)) ((List.hd lang).constructor.premises)));
+    ()
 
 let _ =
   (* match (doParse exampleRules ["(1 + 2) + 3"] "Term" (fun x y -> x = y)) with

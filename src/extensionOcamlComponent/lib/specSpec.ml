@@ -47,6 +47,7 @@ let getMV (globalMvNames : id StringMap.t ref) (name : string) =
 let rec termAstToTerm (mvEnv : id StringMap.t ref) (globalMvNames : id StringMap.t ref) (localEnv : string list) (t : string ast) : term =
   match t with
   | Node((AstNode "Lambda", _, _), [nameRegex; body]) -> Lam  (termAstToTerm mvEnv globalMvNames (regexAstToString nameRegex :: localEnv) body)
+  | Node((AstNode "Parens", _, _), [t]) -> termAstToTerm mvEnv globalMvNames localEnv t
   | Node((AstNode "Application", _, _), [t1; t2]) -> App (termAstToTerm mvEnv globalMvNames localEnv t1, termAstToTerm mvEnv globalMvNames localEnv t2)
   | Node((AstNode "Var", _, _), [nameRegex]) ->
       let name = (regexAstToString nameRegex) in
@@ -100,7 +101,7 @@ let rec nameComponentListAstToNaming (t : string ast) : naming =
   | _ -> raise (Error "NameComponentList ast wasn't of correct form")
 
 (* Inputs an AST parsed from the below spec, and outputs it as a language *)
-let specAstToLang (t : string ast) : inductive =
+let specAstToLang (t : string ast) : inductive * sub =
   (* As it parses the syntax, it stores global definitions in an enviroment, and keeps a mapping of names to metavariables ids. *)
   let globalMvNames : id StringMap.t ref = ref StringMap.empty in
   let metavarMvNames : id StringMap.t ref = ref StringMap.empty in
@@ -129,7 +130,8 @@ let specAstToLang (t : string ast) : inductive =
   let ctrs = impl t in
   (* This is the lazy inefficient solution. Instead of finding which metavars go to which rule, Im just listing them all as bound for all rules. *)
   let allMetaVars = StringMap.fold (fun _ id acc -> id :: acc) !globalMvNames [] in
-  List.map (fun constructor -> {constructor; boundVars = allMetaVars}) ctrs
+  let lang = List.map (fun constructor -> {constructor; boundVars = allMetaVars}) ctrs in
+  lang, !globalEnv
   
 
 (*
@@ -165,6 +167,17 @@ let spec : inductive = [
       name = "Lambda";
       look = [NameKeyword "\\"; NameHole; NameKeyword "."; NameHole];
       premises = [regexSort (var "name") "[A-Za-z]+"; termSort (consSort (var "name") (var "ctx"))];
+      hiddenPremises = [];
+      conclusion = termSort (var "ctx");
+      equalities = [];
+      disequalities = [];
+    });
+
+  makeRule (fun var ->
+    {
+      name = "Parens";
+      look = [NameKeyword "("; NameHole; NameKeyword ")"];
+      premises = [termSort (var "ctx")];
       hiddenPremises = [];
       conclusion = termSort (var "ctx");
       equalities = [];

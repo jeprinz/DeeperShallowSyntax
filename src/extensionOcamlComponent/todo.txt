@@ -22,8 +22,10 @@ I could just have part of it that it processes afterwards, but it would be nice 
     - Maybe constants are capitalized? Should I write out which variables will be bound locally?
 [o] - Make it so metavariables only appear in typing rules (technically I could be lazy and not do this... or even say its a feature...)
 [ ] - In specSpec, make something so that the look has to line up with the number of premises.
-[ ] - Add hidden premises to specSpec.
-[ ] - Write code that reads a parsed specSpec ast and builds a lang
+[x] - In specSpec, add parens for terms
+[ ] - In specSpec, make simplified syntax for lambdas with multiple args
+[x] - Add hidden premises to specSpec.
+[x] - Write code that reads a parsed specSpec ast and builds a lang
 [ ] - Implement the "messages" section of the lang
 [ ] - Write code that prints out a tree of labels, given a lang describing the looks.
     - Will also need to deal with regexSort stuff.
