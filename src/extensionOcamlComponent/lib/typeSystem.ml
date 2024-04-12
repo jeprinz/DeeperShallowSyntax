@@ -39,6 +39,14 @@ let rules : (astSort, astLabel) language = [
 type nameComponent = NameKeyword of string | NameHole | NameNewline
 type naming = nameComponent list
 
+let show_nameComponent (nc : nameComponent) : string =
+  match nc with
+  | NameKeyword s -> s
+  | NameHole -> "_"
+  | NameNewline -> "<newline>"
+
+let show_naming (n : naming) : string = String.concat " " (List.map show_nameComponent n)
+
 type constructor = {
   name : string;
   look : naming;
@@ -70,18 +78,20 @@ let makeRule (ruleDesc : (string -> term) -> constructor) : fullConstructor =
     constructor;
   }
 
+let subCtr (sub : sub) (ctr : constructor) : constructor =
+  let ren = metaSubst sub in
+  {
+    ctr with
+    premises = List.map ren ctr.premises;
+    hiddenPremises = List.map ren ctr.hiddenPremises;
+    conclusion = ren ctr.conclusion;
+    equalities = List.map (fun (x, y) -> ren x, ren y) ctr.equalities;
+    disequalities = List.map (fun (x, y) -> ren x, ren y) ctr.disequalities;
+  }
+
 let freshenRule (ctr : fullConstructor) : constructor = 
   let mvarMap = List.fold_right (fun x acc -> let y = freshId () in IntMap.add x (MetaVar y) acc) ctr.boundVars IntMap.empty in
-  let ren = metaSubst mvarMap in
-  let c = ctr.constructor in
-  {
-    c with
-    premises = List.map ren c.premises;
-    hiddenPremises = List.map ren c.hiddenPremises;
-    conclusion = ren c.conclusion;
-    equalities = List.map (fun (x, y) -> ren x, ren y) c.equalities;
-    disequalities = List.map (fun (x, y) -> ren x, ren y) c.disequalities;
-  }
+  subCtr mvarMap ctr.constructor
 
 let regexSort (s : term) (regex : string) =
   App(App(Const "Regex", s), Const regex)

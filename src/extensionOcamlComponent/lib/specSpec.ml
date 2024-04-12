@@ -104,11 +104,12 @@ let rec nameComponentListAstToNaming (t : string ast) : naming =
   | _ -> raise (Error "NameComponentList ast wasn't of correct form")
 
 (* Inputs an AST parsed from the below spec, and outputs it as a language *)
-let specAstToLang (t : string ast) : inductive * sub =
+let specAstToLang (t : string ast) : inductive =
   (* As it parses the syntax, it stores global definitions in an enviroment, and keeps a mapping of names to metavariables ids. *)
   let globalMvNames : id StringMap.t ref = ref StringMap.empty in
   let metavarMvNames : id StringMap.t ref = ref StringMap.empty in
   let globalEnv : sub ref = ref IntMap.empty in
+  let ruleNumber = ref 0 in
   let rec impl (t : string ast) : constructor list =
     match t with
     | Node((AstNode "LambdaDefCons", _, _), [nameRegex; term; rest]) ->
@@ -117,9 +118,12 @@ let specAstToLang (t : string ast) : inductive * sub =
       impl rest
     | Node((AstNode "TypeRuleCons", _, _), [premises; _barNotation; look; conclusion; rest]) ->
       let partialConstructor = premiseListDecompose(premiseListAstToPremises metavarMvNames globalMvNames premises) in
+      let naming = nameComponentListAstToNaming look in
+      let name = "Rule" ^ string_of_int !ruleNumber ^ " \"" ^ show_naming naming ^ "\"" in
+      ruleNumber := !ruleNumber + 1;
       {
-        name = "TODO";
-        look = nameComponentListAstToNaming look;
+        name = name;
+        look = naming;
         premises = partialConstructor.premises;
         hiddenPremises = []; (* TODO *)
         conclusion = termAstToTerm metavarMvNames globalMvNames [] conclusion;
@@ -133,8 +137,8 @@ let specAstToLang (t : string ast) : inductive * sub =
   let ctrs = impl t in
   (* This is the lazy inefficient solution. Instead of finding which metavars go to which rule, Im just listing them all as bound for all rules. *)
   let allMetaVars = StringMap.fold (fun _ id acc -> id :: acc) !globalMvNames [] in
-  let lang = List.map (fun constructor -> {constructor; boundVars = allMetaVars}) ctrs in
-  lang, !globalEnv
+  let lang = List.map (fun ctr -> {constructor = subCtr !globalEnv ctr; boundVars = allMetaVars}) ctrs in
+  lang
   
 
 (*

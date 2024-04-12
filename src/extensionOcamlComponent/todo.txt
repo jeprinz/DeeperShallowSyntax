@@ -23,9 +23,14 @@ I could just have part of it that it processes afterwards, but it would be nice 
 [o] - Make it so metavariables only appear in typing rules (technically I could be lazy and not do this... or even say its a feature...)
 [ ] - In specSpec, make something so that the look has to line up with the number of premises.
 [x] - In specSpec, add parens for terms
-[ ] - In specSpec, make simplified syntax for lambdas with multiple args
+[x] - In specSpec, make simplified syntax for lambdas with multiple args
 [x] - Add hidden premises to specSpec.
 [x] - Write code that reads a parsed specSpec ast and builds a lang
+[ ] - in specSpec, make a way to deal with regexes.
+    - Use const, or make a string type?
+    - Make a string literal thing?
+    - Maybe use const + metadata in the backend terms to denote which consts are just string literals?
+[ ] - Figure out some way that you can specify the top sort in the spec. Or maybe the top sort is always just "Top" or something.
 [ ] - Implement the "messages" section of the lang
 [ ] - Write code that prints out a tree of labels, given a lang describing the looks.
     - Will also need to deal with regexSort stuff.

@@ -101,13 +101,14 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
       | None -> raise (Error "no"))
     | Node ((AstNode label, lpos, rpos) , kids) ->
       let pos = {left = lpos; right = rpos;} in
+      let _ = if not (StringMap.mem label ctrLookup) then print_endline ("Not foudn:::: " ^ label) else () in
       let ctr = freshenRule (StringMap.find label ctrLookup) in
       processConstraints ();
       (* print_endline("At ctr. " ^ ctr.name ^ " unifying: " ^ show_term sort ^ " with " ^ show_term ctr.conclusion ^ " and sub is " ^ show_sub !sub); *)
       match unifyPartially !sub ((sort, ctr.conclusion) :: ctr.equalities @ !equations) with
       | None ->
         (* TODO: I could have it keep track of whichever parts of the sub did work successfully, and still try unifying the children. For now, I'll go with the simple option.*)
-        makeError {pos; message = "unification failed here";};
+        makeError {pos; message = ("unification failed here: " ^ (show_term (metaSubst !sub sort)) ^ " did not unify with " ^ (show_term (metaSubst !sub ctr.conclusion)));};
         ()
       | Some (sub', equations') ->
         hiddenJudgements := List.map (fun t -> {sort = t; pos}) ctr.hiddenPremises @ !hiddenJudgements;
@@ -124,7 +125,6 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
   in
   
   typecheckImpl topSort prog;
-  print_endline "At end of program here";
   processConstraints ();
   processDisequalities (); (* TODO: Should I call this throught inference as well? What would be the benefit - no facts can be deduced which help elsewhere?*)
   let leftoverConstraintErrors = List.map (fun ({pos; sort} : sortConstraint) -> {pos; message= "Constraint unresolved at end: " ^ show_term (metaSubst !sub sort)}) !hiddenJudgements in

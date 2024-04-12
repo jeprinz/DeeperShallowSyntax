@@ -4,93 +4,82 @@ open ExtensionOcamlComponent.TypeSystem
 open ExtensionOcamlComponent.Typecheck
 open ExtensionOcamlComponent.Unification
 
-(* let exampleRules : (string, string) language = [
-  (* Rule ("App", "Term", [SortPattern "Term"; SortPattern "Term"]); *)
-  (* Rule ("Var", "Term", [RegPattern (Str.regexp {|[A-Za-z]+|})]); *)
-  (* Rule ("Paren", "Term", [Keyword "("; SortPattern "Term"; Keyword ")"]); *)
-  (* Rule ("Let", "Term", [Keyword "let"; RegPattern (Str.regexp {|[A-Za-z]+|}); Keyword "="; SortPattern "Term"; Keyword "in"; SortPattern "Term"]); *)
-  (* Rule ("Plus", "Term", [SortPattern "Term"; Keyword "+"; SortPattern "Term"]); *)
-  (* Rule ("Number", "Term", [RegPattern (Str.regexp {|[0-9]+|})]); *)
-  (* Rule ("Lam", "Term", [Keyword "fun"; RegPattern (Str.regexp {|[A-Za-z]+|}); Keyword "=>" ; SortPattern "Term"]); *)
-
-  Rule ("Number", "Term", [RegPattern (Str.regexp {|[0-9]+|})]);
-  Rule ("Plus", "Term", [SortPattern "Term"; Keyword "+"; SortPattern "Term"]);
-  Rule ("Paren", "Term", [Keyword "("; SortPattern "Term"; Keyword ")"]);
-
-] *)
-
-(* let rec tree_size (t : 'label tree) : int =
-  match t with
-  | Node(_, children) -> 1 + List.fold_right (fun x y -> x + y) (List.map tree_size children) 0 *)
-
-(* let exampleProgram = {|
-
-|} *)
-
-
 let testSpecSpec (_ : unit) =
+  print_endline "Test: ability to load a spec, and use that spec to check a second program.";
   let parserSpec = makeParser spec in
-  let code = [
-    (* "f = \\ a . a"; *)
-    (* "g = \\ x . fa "; *)
-    (* "???"; *)
-    (* "f = \\x. \\y. \\z. x"; *)
-
-    (* "f = \\x . x g = \\x . x { f, {f}, f, f, ?g != f f, f == f ---- \" aaaa bbbb cc\" ?g }"; *)
+  
+  (* The specification for the program *)
+  let langSpec = [
     {|
-      true = \ x y. x
-      false = \ x y . y
+      {
+        Term, Term
+        ------------ "_ + _"
+        Term
+      }
 
       {
-        true true false,
-        false (false false)
-        ------------ " hello _ bye "
-        false
+        Term, Term
+        ------------ "_ - _"
+        Term
+      }
+
+      {
+        ----------- "x"
+        Term
+      }
+
+      {
+        ----------- "y"
+        Term
       }
     |};
   ] in
-  (* let topSort = (topLevel (MetaVar (freshId ())) (MetaVar (freshId ()))) in *)
+
+  (* The program to be checked *)
+  let program = [
+    (* {|
+      x + y - x
+    |}; *)
+    "x + y - x - x - x - x - x - x - x - x - x - x - x - x";
+  ] in
   let topSort = (topLevel nilSort (MetaVar (freshId ()))) in
-  let parsed = doParse parserSpec (fun x -> x) show_term code
+  let parsed = doParse parserSpec (fun x -> x) show_term langSpec
     topSort
     (fun x y -> Option.is_some (unify [x, y])) in
   match parsed with
-  | Error msg -> print_endline msg
+  | Error msg -> print_endline ("Failed to parse spec: " ^ msg)
   | Ok t ->
-    print_endline "parsed AST:";
+    print_endline "parsed AST of spec:";
     print_endline (show_tree show_ast_label_short t);
     let typeErrors = typecheck spec topSort t in
-    print_endline "errors:";
-    List.iter (fun err -> print_endline (show_errorMessasge err)) typeErrors;
-    print_endline "About to convert to language: ";
-    let lang, sub = specAstToLang t in
-    print_endline ("Num of ctrs: " ^ string_of_int (List.length lang));
-    print_endline ("Premises of first ctr: " ^ String.concat "; " (List.map (fun t -> show_term (metaSubst sub t)) ((List.hd lang).constructor.premises)));
-    ()
+    if List.length typeErrors <> 0 then
+      (print_endline "Typechecking errors while checking spec:";
+      List.iter (fun err -> print_endline (show_errorMessasge err)) typeErrors)
+    else
+    print_endline "Spec checked correctly, converting to inductive: ";
+    let lang = specAstToLang t in
+
+    let topSort = (Const "Term") in
+    let progParser = makeParser lang in (* TODO: This should take sub!*)
+    let parsedProg = doParse progParser (fun x -> x) show_term program
+      topSort
+      (fun x y -> Option.is_some (unify [x, y]))
+    in
+    match parsedProg with
+    | Error msg -> print_endline ("Failed to parse program: " ^ msg)
+    | Ok t ->
+      print_endline "Program parsed successfully. parsed AST of program:";
+      print_endline (show_tree show_ast_label_short t);
+      let typeErrors = typecheck lang topSort t in
+      if List.length typeErrors <> 0 then
+        (print_endline "Typechecking errors while checking spec:";
+        List.iter (fun err -> print_endline (show_errorMessasge err)) typeErrors)
+      else
+      print_endline "Program typechecked!";
+      ()
 
 let _ =
-  (* match (doParse exampleRules ["(1 + 2) + 3"] "Term" (fun x y -> x = y)) with
-  | Ok t -> print_endline (show_tree show_ast_label t)
-  | Error msg -> print_endline msg *)
-
   testSpecSpec ();
 
-  (* let mv = (MetaVar (freshId ())) in
-  let t1 = topLevel nilSort (MetaVar (freshId ()))  in
-  let t2 =  topLevel mv mv in
-  print_endline ("Testing unification on " ^ show_term t1 ^ " and " ^ show_term t2);
-  match unify [t1 , t2] with
-  | None -> print_endline "fail"
-  | Some (sub, eq) ->
-    print_endline ("eqs left: " ^ string_of_int (List.length eq));
-    print_endline ("sub: " ^ show_sub sub) *)
-
   (* print_endline (string_of_bool (Option.is_some (unify [App (Const "a", MetaVar (freshId ())), App (Const "b", MetaVar (freshId ()))]))); *)
-  (* print_endline (string_of_bool (Option.is_some (unify [Pair (Const "a", MetaVar (freshId ())), Pair (Const "b", MetaVar (freshId ()))]))); *)
-  (* print_endline (string_of_bool (Option.is_some (unify [Const "aa", Const "ab"]))); *)
-  (* print_endline (string_of_bool (Option.is_some (unify [topLevel (MetaVar (freshId ())) (MetaVar (freshId ())), termSort (MetaVar (freshId ()))]))) *)
-
-  (* let str = "bb\"ssb" in
-  let _ = (Str.string_match (Str.regexp "[^\"]+") str 0) in
-  print_endline (Str.matched_string str); *)
 
