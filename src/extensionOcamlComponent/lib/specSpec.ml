@@ -24,6 +24,7 @@ let premiseList (ctx : term) : term = App (Const "PremiseList", ctx)
 let premise (ctx : term) : term = App (Const "Premise", ctx)
 let nameComponentSort  : term = Const "NameComponent"
 let nameComponentListSort : term = Const "NameComponentList"
+let varListSort (ctxOutside : term) (ctxInside : term)  : term = App(App(Const "VarList", ctxOutside), ctxInside)
 
 let regexAstToString (t : string ast) : string =
   match t with
@@ -46,7 +47,9 @@ let getMV (globalMvNames : id StringMap.t ref) (name : string) =
 
 let rec termAstToTerm (mvEnv : id StringMap.t ref) (globalMvNames : id StringMap.t ref) (localEnv : string list) (t : string ast) : term =
   match t with
-  | Node((AstNode "Lambda", _, _), [nameRegex; body]) -> Lam  (termAstToTerm mvEnv globalMvNames (regexAstToString nameRegex :: localEnv) body)
+  | Node((AstNode "Lambda", _, _), [Node((AstNode "VarListNil", _, _), []); body]) -> termAstToTerm mvEnv globalMvNames localEnv body
+  | Node((AstNode "Lambda", p1, p2), [Node((AstNode "VarListCons", _, _), [nameRegex; rest]); body]) ->
+    Lam  (termAstToTerm mvEnv globalMvNames (regexAstToString nameRegex :: localEnv) (Node((AstNode "Lambda", p1, p2), [rest; body])))
   | Node((AstNode "Parens", _, _), [t]) -> termAstToTerm mvEnv globalMvNames localEnv t
   | Node((AstNode "Application", _, _), [t1; t2]) -> App (termAstToTerm mvEnv globalMvNames localEnv t1, termAstToTerm mvEnv globalMvNames localEnv t2)
   | Node((AstNode "Var", _, _), [nameRegex]) ->
@@ -166,12 +169,32 @@ let spec : inductive = [
     {
       name = "Lambda";
       look = [NameKeyword "\\"; NameHole; NameKeyword "."; NameHole];
-      premises = [regexSort (var "name") "[A-Za-z]+"; termSort (consSort (var "name") (var "ctx"))];
+      premises = [varListSort (var "ctxOutside") (var "ctxInside"); termSort (consSort (var "name") (var "ctxInside"))];
       hiddenPremises = [];
-      conclusion = termSort (var "ctx");
+      conclusion = termSort (var "ctxOutside");
       equalities = [];
       disequalities = [];
     });
+
+  makeRule (fun var -> {
+      name = "VarListNil";
+      look = [];
+      premises = [];
+      hiddenPremises = [];
+      conclusion = varListSort (var "ctx") (var "ctx");
+      equalities = [];
+      disequalities = [];
+  });
+
+  makeRule (fun var -> {
+      name = "VarListCons";
+      look = [NameHole; NameHole];
+      premises = [regexSort (var "name") "[a-z][A-Za-z0-9]*"; varListSort (var "ctxOutside") (var "ctxInside")];
+      hiddenPremises = [];
+      conclusion = varListSort (var "ctxOutside") (consSort (var "name") (var "ctxInside"));
+      equalities = [];
+      disequalities = [];
+  });
 
   makeRule (fun var ->
     {

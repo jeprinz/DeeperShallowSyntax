@@ -38,8 +38,8 @@ let testSpecSpec (_ : unit) =
 
     (* "f = \\x . x g = \\x . x { f, {f}, f, f, ?g != f f, f == f ---- \" aaaa bbbb cc\" ?g }"; *)
     {|
-      true = \ x. \ y. x
-      false = \ x. \ y . y
+      true = \ x y. x
+      false = \ x y . y
 
       {
         true true false,
