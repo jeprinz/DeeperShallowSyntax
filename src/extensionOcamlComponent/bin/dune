@@ -2,10 +2,11 @@
  (flags
   (:standard -warn-error "-unused-value-declaration" -warn-error "-unused-open"
    -warn-error "-unused-constructor" -warn-error "-unused-extension" -warn-error "-unused-type-declaration"
-   -warn-error "-unused-var-strict")
+   -warn-error "-unused-var-strict"
+   -warn-error "-unused-field")
   )
  (public_name extensionOcamlComponent)
  (name main)
- (libraries extensionOcamlComponent)
+ (libraries str extensionOcamlComponent)
  (preprocess (pps js_of_ocaml-ppx))
  (modes byte js))

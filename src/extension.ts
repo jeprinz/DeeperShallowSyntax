@@ -8,6 +8,16 @@ import * as test from './test';
 // import * as backend2 from './extensionOcamlComponent/_build/default/bin/showtest';
 import * as backend from './extensionOcamlComponent/_build/default/bin/main.bc';
 
+import * as path from 'path';
+
+// The error recieved back from the ocaml code are of this form:
+type errorMessage = {
+	lineNumber : number,
+	posInLine : number,
+	severity : string,
+	message : string
+}
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -36,8 +46,51 @@ export function activate(context: vscode.ExtensionContext) {
 		// Display a message box to the user
 		vscode.window.showInformationMessage('Hello World from DeeperShallowSyntax!');
 	});
-
 	context.subscriptions.push(disposable);
+
+	context.subscriptions.push(vscode.commands.registerCommand('deepershallowsyntax.checkProgram', () => {
+		console.log("The current file name is:", vscode.window.activeTextEditor?.document.fileName);
+		//@ts-ignore
+		console.log("The current file extension is:", path.basename(vscode.window.activeTextEditor?.document.fileName));
+
+		doCheck();
+	}));
+
+
+	const extension = "language";
+	// This regex will match things of the form "____.XXXX.language"
+	const progNameRegex = new RegExp('^[^.]+.([^.]+).' + extension + '$');
+	// This regex will match things of the form "XXXX.language"
+	const specNameRegex = new RegExp('^([^.]+).' + extension + '$');
+
+	function doCheck(){
+		// First, determine by the file extension whether this is a spec file or a language file
+
+		let fullNameWithDir = (vscode.window.activeTextEditor?.document.fileName);
+		if (!fullNameWithDir){
+			vscode.window.showInformationMessage("Error: couldn't get file name");
+		} else {
+			let fileName = path.basename(fullNameWithDir);
+			let specNameMatch = fileName.match(specNameRegex);
+			let progNameMatch = fileName.match(progNameRegex);
+			if (specNameMatch) {
+				let name = specNameMatch[1];
+				// This is a specification file with name <name>
+				vscode.window.showInformationMessage('Spec file with extension: ' + name);
+
+				let text = vscode.window.activeTextEditor?.document.getText();
+
+				// @ts-ignore
+				console.log("Recieved back:", backend.backend.checkSpec(text));
+			} else if (progNameMatch){
+				let lang = progNameMatch[1];
+				// This is a specification file with language <lang>
+				vscode.window.showInformationMessage('Prog file with extension: ' + lang);
+			} else {
+				vscode.window.showInformationMessage('Filename not of the right form');
+			}
+		}
+	}
 }
 
 // This method is called when your extension is deactivated

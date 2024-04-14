@@ -31,6 +31,10 @@ I could just have part of it that it processes afterwards, but it would be nice 
     - Make a string literal thing?
     - Maybe use const + metadata in the backend terms to denote which consts are just string literals?
 [ ] - Figure out some way that you can specify the top sort in the spec. Or maybe the top sort is always just "Top" or something.
+[ ] - It can be confusing the difference between parse and type error. Maybe make parser prefer matches with correct sort, but if it doesn't work
+    then uses any match? Or maybe that makes no sense with backtracking involved?
+    Maybe there is just a routine that runs when there are no rules that fit, which checks if any rule would fit if sorts weren't an issue, and
+    then makes a special error message saying that it doesn't unify?
 [ ] - Implement the "messages" section of the lang
 [ ] - Write code that prints out a tree of labels, given a lang describing the looks.
     - Will also need to deal with regexSort stuff.

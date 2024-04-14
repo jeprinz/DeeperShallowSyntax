@@ -256,3 +256,9 @@ let doParse (lang : ('sort, 'label) language) (show_rule : 'label -> string) (sh
   match (parse (rewriteCompare compare) internalRules (show_internalLabel show_rule) (show_internalSort show_sort) lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) with
   | Ok ast -> Ok (convertBack ast)
   | Error (msg, pos) -> Error ("At " ^ show_position pos ^ " " ^ msg)
+
+let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (show_sort : 'sort -> string) (lines : string list) (topSort : 'sort) (compare : 'sort -> 'sort -> bool) : ('label ast, position * string) result =
+  let internalRules = rewriteRules compare lang in
+  match (parse (rewriteCompare compare) internalRules (show_internalLabel show_rule) (show_internalSort show_sort) lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) with
+  | Ok ast -> Ok (convertBack ast)
+  | Error (msg, pos) -> Error (pos, msg)

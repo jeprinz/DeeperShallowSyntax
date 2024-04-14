@@ -18,6 +18,10 @@
       {
         "command": "deepershallowsyntax.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "deepershallowsyntax.checkProgram",
+        "title": "Check Program"
       }
     ]
   },

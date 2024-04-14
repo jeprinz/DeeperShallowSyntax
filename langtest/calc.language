@@ -1,0 +1,40 @@
+{
+  Term Num, Term Num
+  ----------------------- "_ + _"
+  Term Num
+}
+
+{
+  Term Num, Term Num
+  ---------------------- "_ == _"
+  Term Bool
+}
+
+{
+  ----------- "5"
+  Term Num
+}
+
+{
+  ----------- "true"
+  Term Bool
+}
+
+{
+  Term Bool
+  ---------- "tonum _"
+  Term Num
+}
+
+{
+  Term Num
+  ---------- "_"
+  Top
+}
+
+{
+  Term ?a
+  ------------- "(_)"
+  Term ?a
+}
+|};
