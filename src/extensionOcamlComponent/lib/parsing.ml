@@ -1,5 +1,6 @@
 (* open Js_of_ocaml *)
 open Str
+open Util
 
 (* Throughout this codebase, we work with generic tree *)
 type 'label tree = Node of 'label * ('label tree list)
@@ -73,6 +74,11 @@ type ('sort, 'label) path =
   PNode of ('sort, 'label) path * 'label * position * ('label ast list) * ('sort pattern list)
   | Top of 'sort
 
+let show_top_of_path (show_label : 'label -> string) (p : ('sort, 'label) path) : string =
+  match p with
+  | Top _ -> "TOP"
+  | PNode (_above, label, _pos, _matchedSoFar, _patternsLeft) -> "Where: " ^ show_label label
+
 (* To prevent infinite recursion on left-recursive rules, this function checks if any input has been accepted since the last instance of a rule. *)
 let rec amILooping (path : ('sort, 'label) path) (ctr : 'label) (pos : position) : bool =
   match path with
@@ -107,7 +113,7 @@ This function parses a string according to a list of rules. It returns the AST i
 The output tree contains labels, and a pair of integers which are the positions in the input string corresponding to that node.
 *)
 let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
-  (_show_rule : 'label -> string)
+  (show_rule : 'label -> string)
   (show_sort : 'sort -> string)
   (input : string list) (pos : position) (where : ('sort, 'label) path) : ('label ast, (string * position)) result =
   (* Firebug.console##log ("Here2.2"); *)
@@ -116,6 +122,8 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
   let errorMessage : string ref = ref "" in
   let rec parseImpl (remainingLinesBeforeSpace : string list) (posBeforeSpace : position) (where : ('sort, 'label) path) : ('label ast) option =
     (* Firebug.console##log ("parseImpl called at pos: " ^ show_position posBeforeSpace ^ (if (List.length remainingLinesBeforeSpace <> 0) then "And rest of line is: " ^ (List.hd remainingLinesBeforeSpace) else "")); *)
+    (* print_endline ("parseImpl called at pos: " ^ show_position posBeforeSpace ^ (if (List.length remainingLinesBeforeSpace <> 0) then "And rest of line is: " ^ (List.hd remainingLinesBeforeSpace) else "")); *)
+    print_endline ("parseImpl called at pos: " ^ show_position posBeforeSpace ^ "At: " ^ show_top_of_path show_rule where);
     let (remainingLines, pos) = skipLeadingWhitespace remainingLinesBeforeSpace posBeforeSpace in
     let newPossibleError (msg : string) =
       if lessThanPos !furthestPos pos && not (!furthestPos = pos) then
@@ -176,7 +184,10 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
      | None -> Error (!errorMessage, !furthestPos)
 
 (* In order to deal with left-recursive rules in the grammar, these functions translate the grammar into an alternate form which
-   is equivalent but not left-recursive. The idea is to convert left-recursive structure into right-recursive lists.*)
+   is equivalent but not left-recursive. The idea is to convert left-recursive structure into right-recursive lists.
+
+   This transformation is described in a comment at the bottom of the file.
+*)
 
 type 'sort internalSort = NormalSort of 'sort | ListSort of 'sort
 type 'label internalLabel = NormalLabel of 'label | ConsLabel of 'label | NilLabel | OfListLabel
@@ -266,3 +277,51 @@ let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (s
   match (parse (rewriteCompare compare) internalRules (show_internalLabel show_rule) (show_internalSort show_sort) lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) with
   | Ok ast -> Ok (convertBack ast)
   | Error (msg, pos) -> Error (pos, msg)
+
+(*
+   
+   Description of the left-recursive rule transformation:
+   Given a rule of the form
+   
+   s1 s2 ... sn
+   ----------- r
+   c
+   
+   where s1 matches with c, this rule is left recursive.
+   We then create a new sort (ListSort s1), and create new rules:
+
+   s2 ... sn (ListSort s1)
+   -------------------------- ConsLabel r
+   ListSort s1
+
+  -------------- NilLabel
+  (ListSort s1)
+
+  (NormalLabel s1) (ListSort s1)
+  --------------------------------------- (OfListLabel s1)
+  NormalSort s1
+
+
+  So, for example, the rule
+
+
+  Term "+" Term
+  ----------------
+  Term
+
+  Is transformed into
+
+
+  "+" (ListSort Term)
+  -----------------
+  ListSort Term
+
+  And then we have
+
+  ---------------- Nil
+  ListSort Term
+
+  Term (ListSort Term)
+  -------------------- OfListLabel Term
+  Term
+   *)
