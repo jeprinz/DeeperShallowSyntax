@@ -7,5 +7,5 @@
   )
  (modules test_extensionOcamlComponent)
  (libraries str extensionOcamlComponent)
- (modes js)
+ ; (modes js)
  )

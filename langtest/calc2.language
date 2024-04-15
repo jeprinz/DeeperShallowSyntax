@@ -1,3 +1,5 @@
+test = \x . x
+
 {
   Term Num, Term Num
   ----------------------- "_ + _"
@@ -5,9 +7,7 @@
 }
 
 {
-  Term Num, Term Num
-  ---------------------- "_ == _"
-  Term Bool
+  Term (test ?a)
+  ----------------- "example _"
+  Term ?a
 }
-
-|};

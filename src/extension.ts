@@ -12,8 +12,10 @@ import * as path from 'path';
 
 // The error recieved back from the ocaml code are of this form:
 type errorMessage = {
-	lineNumber : number,
-	posInLine : number,
+	leftLineNumber : number,
+	leftPosInLine : number,
+	rightLineNumber : number,
+	rightPosInLine : number,
 	severity : string,
 	message : string
 }
@@ -56,8 +58,22 @@ export function activate(context: vscode.ExtensionContext) {
 		doCheck();
 	}));
 
-
 	const extension = "language";
+	let diagnosticCollection = vscode.languages.createDiagnosticCollection(extension);
+	context.subscriptions.push(diagnosticCollection);
+
+	function setErrors(errors : Array<errorMessage>){
+		diagnosticCollection.clear();
+		let str = vscode.window.activeTextEditor?.document.fileName
+		if (str){
+			diagnosticCollection.set(vscode.Uri.file(str),
+			errors.map((error) => 
+				new vscode.Diagnostic(new vscode.Range(new vscode.Position(error.leftLineNumber, error.leftPosInLine),
+					new vscode.Position(error.rightLineNumber,error.rightPosInLine)), error.message, vscode.DiagnosticSeverity.Error)
+			));
+		}
+	}
+
 	// This regex will match things of the form "____.XXXX.language"
 	const progNameRegex = new RegExp('^[^.]+.([^.]+).' + extension + '$');
 	// This regex will match things of the form "XXXX.language"
@@ -85,6 +101,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 				console.log("Recieved back:", errors);
 				vscode.window.showInformationMessage("Recieved this many errors:" + errors.length);
+				setErrors(errors);
 			} else if (progNameMatch){
 				let lang = progNameMatch[1];
 				// This is a specification file with language <lang>

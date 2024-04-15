@@ -63,13 +63,13 @@ let testSpecSpec (_ : unit) =
         ----------------------- "_ ++ _"
         Term NumX
       }
-
+      
       garbo
     |};
   in
 
   let _langSpec = 
-{|{-"5" Top } {Term Num, Term Num -"_ + _" Term Num} { Term ?a ---"(_)" Term ?a } |}
+{|{-"5" Top } {Term Num, Term Num -"_ + _" Term Num} { Term ?a -- "(_)" Term ?a } garbo |}
   in
 
   (* The program to be checked *)
