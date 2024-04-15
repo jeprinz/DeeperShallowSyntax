@@ -1,4 +1,5 @@
-open Str;;
+(* open Js_of_ocaml *)
+open Str
 
 (* Throughout this codebase, we work with generic tree *)
 type 'label tree = Node of 'label * ('label tree list)
@@ -109,10 +110,12 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
   (_show_rule : 'label -> string)
   (show_sort : 'sort -> string)
   (input : string list) (pos : position) (where : ('sort, 'label) path) : ('label ast, (string * position)) result =
+  (* Firebug.console##log ("Here2.2"); *)
   (* In order to keep track of errors, whenever it backtracks it remembers the furthest position it got to. We assume this is where the error is. *)
   let furthestPos : position ref = ref {lineNumber = 0; posInLine = 0} in
   let errorMessage : string ref = ref "" in
   let rec parseImpl (remainingLinesBeforeSpace : string list) (posBeforeSpace : position) (where : ('sort, 'label) path) : ('label ast) option =
+    (* Firebug.console##log ("parseImpl called at pos: " ^ show_position posBeforeSpace ^ (if (List.length remainingLinesBeforeSpace <> 0) then "And rest of line is: " ^ (List.hd remainingLinesBeforeSpace) else "")); *)
     let (remainingLines, pos) = skipLeadingWhitespace remainingLinesBeforeSpace posBeforeSpace in
     let newPossibleError (msg : string) =
       if lessThanPos !furthestPos pos && not (!furthestPos = pos) then
@@ -259,6 +262,7 @@ let doParse (lang : ('sort, 'label) language) (show_rule : 'label -> string) (sh
 
 let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (show_sort : 'sort -> string) (lines : string list) (topSort : 'sort) (compare : 'sort -> 'sort -> bool) : ('label ast, position * string) result =
   let internalRules = rewriteRules compare lang in
+  (* Firebug.console##log ("Here2.1"); *)
   match (parse (rewriteCompare compare) internalRules (show_internalLabel show_rule) (show_internalSort show_sort) lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) with
   | Ok ast -> Ok (convertBack ast)
   | Error (msg, pos) -> Error (pos, msg)

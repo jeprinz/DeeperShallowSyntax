@@ -6,4 +6,6 @@
    -warn-error "-unused-var-strict")
   )
  (modules test_extensionOcamlComponent)
- (libraries str extensionOcamlComponent))
+ (libraries str extensionOcamlComponent)
+ (modes js)
+ )

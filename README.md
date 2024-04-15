@@ -8,3 +8,5 @@ The ocaml code is in src/extensionOccamlComponent, which is a dune project.
 Build the ocaml code into javascript by runing "dune build" in that folder.
 
 To test the VSCode extension, go to extension.ts, and press F5.
+Also: to run the javascript faster, use Ctrl-F5. F5 by default goes into the debugger, which seems to be
+vastly slower.

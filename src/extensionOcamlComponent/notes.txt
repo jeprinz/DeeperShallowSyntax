@@ -1,3 +1,6 @@
 The following link explains how I use js_to_ocaml to compile to javascript.
 
 https://dune.readthedocs.io/en/latest/jsoo.html
+
+
+TODO: investigate: if I put a parse error at the end of the file, the parser takes a really long time.

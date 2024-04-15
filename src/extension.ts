@@ -81,7 +81,10 @@ export function activate(context: vscode.ExtensionContext) {
 				let text = vscode.window.activeTextEditor?.document.getText();
 
 				// @ts-ignore
-				console.log("Recieved back:", backend.backend.checkSpec(text));
+				let errors = backend.backend.checkSpec(text);
+
+				console.log("Recieved back:", errors);
+				vscode.window.showInformationMessage("Recieved this many errors:" + errors.length);
 			} else if (progNameMatch){
 				let lang = progNameMatch[1];
 				// This is a specification file with language <lang>

@@ -9,4 +9,5 @@
  (name main)
  (libraries str extensionOcamlComponent)
  (preprocess (pps js_of_ocaml-ppx))
- (modes byte js))
+ (modes native js)
+ )

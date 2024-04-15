@@ -1,0 +1,13 @@
+{
+  Term Num, Term Num
+  ----------------------- "_ + _"
+  Term Num
+}
+
+{
+  Term Num, Term Num
+  ---------------------- "_ == _"
+  Term Bool
+}
+
+|};

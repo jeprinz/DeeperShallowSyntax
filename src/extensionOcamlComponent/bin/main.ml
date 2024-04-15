@@ -56,6 +56,8 @@ let checkSpec (text : Js.js_string Js.t) : Js.Unsafe.any Js.js_array Js.t =
 
   let lines = String.split_on_char '\n' string in
 
+  Firebug.console##log ("Now, after splitting, the text is: " ^ String.concat "<newline>" lines);
+
   Firebug.console##log ("Here1");
   let topSort = (topLevel nilSort (MetaVar (freshId ()))) in
   Firebug.console##log ("Here2");
