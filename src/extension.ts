@@ -105,6 +105,15 @@ export function activate(context: vscode.ExtensionContext) {
 			} else if (progNameMatch){
 				let lang = progNameMatch[1];
 				// This is a specification file with language <lang>
+				let progText = vscode.window.activeTextEditor?.document.getText();
+				let specPath = fullNameWithDir.slice(0, fullNameWithDir.length - fileName.length) + lang + "." + extension;
+				console.log("fullNameWithDir is: " + fullNameWithDir + " and specPath is: " + specPath);
+				vscode.workspace.openTextDocument(specPath).then((specDoc) => {
+					let specText = specDoc.getText();
+					//@ts-ignore
+					let errors = backend.backend.checkProgram(specText, progText);
+					setErrors(errors);
+				});
 				vscode.window.showInformationMessage('Prog file with extension: ' + lang);
 			} else {
 				vscode.window.showInformationMessage('Filename not of the right form');

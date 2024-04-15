@@ -173,7 +173,7 @@ let spec : inductive = [
     {
       name = "Lambda";
       look = [NameKeyword "\\"; NameHole; NameKeyword "."; NameHole];
-      premises = [varListSort (var "ctxOutside") (var "ctxInside"); termSort (consSort (var "name") (var "ctxInside"))];
+      premises = [varListSort (var "ctxOutside") (var "ctxInside"); termSort (var "ctxInside")];
       hiddenPremises = [];
       conclusion = termSort (var "ctxOutside");
       equalities = [];
