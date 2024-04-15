@@ -54,6 +54,13 @@ let show_ast_label_short ((l, _p1, _p2) : (string astLabel * position * position
   in
   lString
 
+let show_ast_label_short_2 (show_label : 'label -> string) ((l, _p1, _p2) : ('label astLabel * position * position)) : string =
+  let lString = match l with
+    | AstString s -> s
+    | AstNode l -> show_label l
+  in
+  lString
+
 (* The parser looks for forms described by rules. Each rule corresponds to a particular kind of node in the
    AST. It consists of a list of patterns, which either describe something that should be present in the text,
    or point to a sort. These sort patterns correspond to child elements of the AST which must be of that sort.*)
@@ -123,7 +130,7 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
   let rec parseImpl (remainingLinesBeforeSpace : string list) (posBeforeSpace : position) (where : ('sort, 'label) path) : ('label ast) option =
     (* Firebug.console##log ("parseImpl called at pos: " ^ show_position posBeforeSpace ^ (if (List.length remainingLinesBeforeSpace <> 0) then "And rest of line is: " ^ (List.hd remainingLinesBeforeSpace) else "")); *)
     (* print_endline ("parseImpl called at pos: " ^ show_position posBeforeSpace ^ (if (List.length remainingLinesBeforeSpace <> 0) then "And rest of line is: " ^ (List.hd remainingLinesBeforeSpace) else "")); *)
-    print_endline ("parseImpl called at pos: " ^ show_position posBeforeSpace ^ "At: " ^ show_top_of_path show_rule where);
+    (* print_endline ("parseImpl called at pos: " ^ show_position posBeforeSpace ^ "At: " ^ show_top_of_path show_rule where); *)
     let (remainingLines, pos) = skipLeadingWhitespace remainingLinesBeforeSpace posBeforeSpace in
     let newPossibleError (msg : string) =
       if lessThanPos !furthestPos pos && not (!furthestPos = pos) then
@@ -189,7 +196,7 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
    This transformation is described in a comment at the bottom of the file.
 *)
 
-type 'sort internalSort = NormalSort of 'sort | ListSort of 'sort
+type 'sort internalSort = NormalSort of 'sort | ListSort of 'sort | PostFixSort of 'sort | AtomSort of 'sort
 type 'label internalLabel = NormalLabel of 'label | ConsLabel of 'label | NilLabel | OfListLabel
 
 let show_internalLabel (show_label : 'label -> string) (l : 'label internalLabel) : string =
@@ -204,33 +211,41 @@ let show_internalSort (show_sort : 'sort -> string) : 'sort internalSort -> stri
   match s with
   | NormalSort s -> show_sort s
   | ListSort s -> "List: " ^ show_sort s
+  | PostFixSort s -> "PostFix: " ^ show_sort s
+  | AtomSort s -> "Atom: " ^ show_sort s
 
-let rewritePattern (p : 'sort pattern) : 'sort internalSort pattern =
+let rewriteInputPattern (compare : 'sort -> 'sort -> bool) (leftRecursiveSorts : 'sort list) (p : 'sort pattern) : 'sort internalSort pattern =
   match p with
   | Keyword s -> Keyword s
   | NewlinePattern -> NewlinePattern
   | RegPattern r -> RegPattern r
-  | SortPattern s -> SortPattern (NormalSort s)
+  | SortPattern s ->
+    if (Option.is_some (List.find_opt (compare s) leftRecursiveSorts))
+      then SortPattern (ListSort s)
+      else SortPattern (NormalSort s)
 
 (* the two special rules for each sort *)
 let nilRule (s : 'sort) : ('sort internalSort, 'label internalLabel) rule =
-  Rule (NilLabel, ListSort s, [])
+  Rule (NilLabel, PostFixSort s, [])
 
 let ofListRule (s : 'sort) : ('sort internalSort, 'label internalLabel) rule  =
-  Rule(OfListLabel, NormalSort s, [SortPattern (NormalSort s); SortPattern (ListSort s)])
+  Rule(OfListLabel, ListSort s, [SortPattern (AtomSort s); SortPattern (PostFixSort s)])
 
 let rewriteRules (compare : 'sort -> 'sort -> bool) (rules : ('sort, 'label) language) : ('sort internalSort, 'label internalLabel) language =
-  let convertedRules = List.map (
-    fun (Rule(label, sort, patterns)) -> match patterns with
-      (* left recursive rule *)
-      | SortPattern p :: rest when compare p sort -> Rule(ConsLabel label, ListSort sort, (List.map rewritePattern rest) @ [SortPattern (ListSort sort)])
-      (* regular rule *)
-      | _ -> Rule(NormalLabel label, NormalSort sort, List.map rewritePattern patterns)
-  ) rules in
   let sortsUsedInLeftRecursion = List.filter_map (
     fun (Rule(_label, sort, patterns)) -> match patterns with
       | SortPattern p :: _rest when compare p sort -> Some sort
       | _ -> None
+  ) rules in
+  let convertedRules = List.map (
+    fun (Rule(label, sort, patterns)) -> match patterns with
+      (* left recursive rule *)
+      | SortPattern p :: rest when compare p sort ->
+        Rule(ConsLabel label, PostFixSort sort, (List.map (rewriteInputPattern compare sortsUsedInLeftRecursion) rest) @ [SortPattern (PostFixSort sort)])
+      (* regular rule *)
+      | _ -> Rule(NormalLabel label,
+          (if (Option.is_some (List.find_opt (compare sort) sortsUsedInLeftRecursion)) then AtomSort sort else NormalSort sort),
+          List.map (rewriteInputPattern compare sortsUsedInLeftRecursion) patterns)
   ) rules in
   convertedRules @ (List.map nilRule sortsUsedInLeftRecursion) @ (List.map ofListRule sortsUsedInLeftRecursion)
 
@@ -238,6 +253,8 @@ let rewriteCompare (compare : 'sort -> 'sort -> bool) : ('sort internalSort -> '
   fun s1 s2 -> match s1, s2 with
   | NormalSort s1', NormalSort s2' -> compare s1' s2'
   | ListSort s1', ListSort s2' -> compare s1' s2'
+  | PostFixSort s1', PostFixSort s2' -> compare s1' s2'
+  | AtomSort s1', AtomSort s2' -> compare s1' s2'
   | _ -> false
 
 exception Error of string
@@ -248,7 +265,7 @@ let rec convertBack (t : 'label internalLabel ast) : 'label ast =
   | Node ((AstNode OfListLabel, _leftPos, _rightPos), [inside; list]) -> unravelList (convertBack inside) list
   | Node ((AstNode NormalLabel l, leftPos, rightPos), children) -> Node((AstNode l, leftPos, rightPos), List.map convertBack children)
   | Node((AstString s, leftPos, rightPos), []) -> Node((AstString s, leftPos, rightPos), [])
-  | _ -> raise (Error "convertBack")
+  | _ -> raise (Error ("convertBack:" ^ show_tree (fun l -> show_ast_label_short_2 (show_internalLabel (fun x -> x)) l) t))
 
 and unravelList (inside : 'label ast) (t : 'label internalLabel ast) : 'label ast =
   match t with
@@ -268,7 +285,9 @@ and unravelList (inside : 'label ast) (t : 'label internalLabel ast) : 'label as
 let doParse (lang : ('sort, 'label) language) (show_rule : 'label -> string) (show_sort : 'sort -> string) (lines : string list) (topSort : 'sort) (compare : 'sort -> 'sort -> bool) : ('label ast, string) result =
   let internalRules = rewriteRules compare lang in
   match (parse (rewriteCompare compare) internalRules (show_internalLabel show_rule) (show_internalSort show_sort) lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) with
-  | Ok ast -> Ok (convertBack ast)
+  | Ok ast ->
+    (* print_endline ("Parsed internal tree: " ^ show_tree (fun l -> show_ast_label_short_2 (show_internalLabel (fun x -> x)) l) ast); *)
+    Ok (convertBack ast)
   | Error (msg, pos) -> Error ("At " ^ show_position pos ^ " " ^ msg)
 
 let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (show_sort : 'sort -> string) (lines : string list) (topSort : 'sort) (compare : 'sort -> 'sort -> bool) : ('label ast, position * string) result =
@@ -290,38 +309,56 @@ let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (s
    where s1 matches with c, this rule is left recursive.
    We then create a new sort (ListSort s1), and create new rules:
 
-   s2 ... sn (ListSort s1)
+   s2 ... sn (PostFixSort s1)
    -------------------------- ConsLabel r
-   ListSort s1
+   PostFixSort s1
 
   -------------- NilLabel
-  (ListSort s1)
+  (PostFixSort s1)
 
-  (NormalLabel s1) (ListSort s1)
+  (AtomSort s1) (PostFixSort s1)
   --------------------------------------- (OfListLabel s1)
-  NormalSort s1
+  ListSort s1
+
+  Then, for any other input premise matching with s1, convert it to (ListSort s1),
+  and for any other output premise matching with s1, convert it to (AtomSort s1).
 
 
-  So, for example, the rule
-
+  So, for example, the language
 
   Term "+" Term
-  ----------------
+  ---------------- plus
   Term
+
+  "f" Term
+  -------------
+  Term
+
+  "bla"
+  ----------------
+  SomethingElse Term
 
   Is transformed into
 
 
-  "+" (ListSort Term)
-  -----------------
-  ListSort Term
+  "+" (PostFixSort Term)
+  ------------------------- ConsLabel plus
+  PostFixSort Term
+
+  "f" (ListSort Term)
+  --------------------
+  AtomSort Term
+
+  "bla"
+  ----------------
+  SomethingElse Term                <---------- This doesn't need to get rewritten recursively. That also doesn't make sense given the way this all works.
 
   And then we have
 
   ---------------- Nil
-  ListSort Term
+  PostFixSort Term
 
-  Term (ListSort Term)
-  -------------------- OfListLabel Term
-  Term
+  (AtomSort Term) (PostFixSort Term)
+  ---------------------------------- OfListLabel Term
+  ListSort Term
    *)

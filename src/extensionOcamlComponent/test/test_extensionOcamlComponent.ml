@@ -10,7 +10,7 @@ let testSpecSpec (_ : unit) =
   let parserSpec = makeParser spec in
   
   (* The specification for the program *)
-  let _langSpec =
+  let langSpec =
     {|
       {
         Term Num, Term Num
@@ -63,11 +63,13 @@ let testSpecSpec (_ : unit) =
         ----------------------- "_ ++ _"
         Term NumX
       }
+
+      garbo
     |};
   in
 
-  let langSpec = 
-{|{-"5" Top } {Term Num, Term Num -"_ + _" Term Num} { Term ?a -- "(_)" Term ?a } garbo |}
+  let _langSpec = 
+{|{-"5" Top } {Term Num, Term Num -"_ + _" Term Num} { Term ?a ---"(_)" Term ?a } |}
   in
 
   (* The program to be checked *)
