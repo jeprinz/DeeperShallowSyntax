@@ -213,6 +213,7 @@ let show_internalSort (show_sort : 'sort -> string) : 'sort internalSort -> stri
   | PostFixSort s -> "PostFix: " ^ show_sort s
   | AtomSort s -> "Atom: " ^ show_sort s
 
+(* TODO: Simplify this if the stuff is no longer necessary *)
 let rewriteInputPattern (compare : 'sort -> 'sort -> bool) (leftRecursiveSorts : 'sort list) (p : 'sort pattern) : 'sort internalSort pattern =
   match p with
   | Keyword s -> Keyword s
@@ -270,6 +271,9 @@ and unravelList (inside : 'label ast) (t : 'label internalLabel ast) : 'label as
   match t with
   | Node ((AstNode NilLabel, _, _), []) -> inside
   | Node ((AstNode ConsLabel s, _leftPos, _rightPos), iChildren) -> (
+      (* match (List.reverse iChildren) with
+      | ((AstNode OfListLabel, _, _), children) -> _
+      | _ -> *)
       match inside with Node((_, insideLeftPos, insideRightPos), _) ->
       match List.rev iChildren with
       (* we need the right position to be the right of the rightmost element of iChildren.*)
@@ -285,7 +289,7 @@ let doParse (lang : ('sort, 'label) language) (show_rule : 'label -> string) (sh
   let internalRules = rewriteRules compare lang in
   match (parse (rewriteCompare compare) internalRules (show_internalLabel show_rule) (show_internalSort show_sort) lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) with
   | Ok ast ->
-    (* print_endline ("Parsed internal tree: " ^ show_tree (fun l -> show_ast_label_short_2 (show_internalLabel (fun x -> x)) l) ast); *)
+    print_endline ("Parsed internal tree: " ^ show_tree (fun l -> show_ast_label_short_2 (show_internalLabel (fun x -> x)) l) ast);
     Ok (convertBack ast)
   | Error (msg, pos) -> Error ("At " ^ show_position pos ^ " " ^ msg)
 
@@ -308,20 +312,14 @@ let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (s
    where s1 matches with c, this rule is left recursive.
    We then create a new sort (NormalSort s1), and create new rules:
 
-   s2 ... sn (PostFixSort s1)
+   (AtomSort s1) s2 ... sn
    -------------------------- ConsLabel r
    PostFixSort s1
 
   -------------- NilLabel
   (PostFixSort s1)
 
-  (AtomSort s1) (PostFixSort s1)
-  --------------------------------------- (OfListLabel s1)
-  NormalSort s1
-
-  Then, for any other input premise matching with s1, convert it to (NormalSort s1),
-  and for any other output premise matching with s1, convert it to (AtomSort s1).
-
+  and for any non left-recursive output premise matching with s1, convert it to (AtomSort s1).
 
   So, for example, the language
 
@@ -361,3 +359,13 @@ let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (s
   ---------------------------------- OfListLabel Term
   NormalSort Term
    *)
+
+(*
+ TODO: Currently, the code doesn't correspond to this explanation at the (ConsLabel plus) constructor.
+ In the code, that second input is (NormalSort Term) instead of (PostFixSort Term).  
+
+ Maybe I should keep it the way it is in the code, and make the unravelList function deal with it?
+
+ Maybe OfListLabel and Cons should actually be the same thing?
+ ^^^^^ This seems right.
+*)

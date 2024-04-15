@@ -55,7 +55,7 @@ let testSpecSpec (_ : unit) =
   (* The program to be checked *)
   let program = [
     {|
-(5 == 5)
+5 + 5 + 5
     |};
   ] in
 

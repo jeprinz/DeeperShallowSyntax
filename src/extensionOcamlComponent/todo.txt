@@ -27,9 +27,7 @@ I could just have part of it that it processes afterwards, but it would be nice 
 [x] - Add hidden premises to specSpec.
 [x] - Write code that reads a parsed specSpec ast and builds a lang
 [ ] - in specSpec, make a way to deal with regexes.
-    - Use const, or make a string type?
-    - Make a string literal thing?
-    - Maybe use const + metadata in the backend terms to denote which consts are just string literals?
+    - All I need to do is make string literals, you can already write "Regex ?x _".
 [ ] - Figure out some way that you can specify the top sort in the spec. Or maybe the top sort is always just "Top" or something.
 [ ] - It can be confusing the difference between parse and type error. Maybe make parser prefer matches with correct sort, but if it doesn't work
     then uses any match? Or maybe that makes no sense with backtracking involved?
@@ -40,5 +38,4 @@ I could just have part of it that it processes afterwards, but it would be nice 
     - Will also need to deal with regexSort stuff.
 
 
-
-Where I left off - I was addings consstants and metavars, but it was bugged
+Where I left off - I seem to have introduced a bug that left-recursive rules are now right associative.
