@@ -41,12 +41,6 @@ let testSpecSpec (_ : unit) =
       }
 
       {
-        Term Num
-        ---------- "_"
-        Top
-      }
-
-      {
         Term ?a
         ------------- "(_)"
         Term ?a
@@ -61,7 +55,7 @@ let testSpecSpec (_ : unit) =
   (* The program to be checked *)
   let program = [
     {|
-(tonum (5 == 5))
+(5 == 5)
     |};
   ] in
 

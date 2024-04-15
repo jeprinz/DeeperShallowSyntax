@@ -196,7 +196,7 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
    This transformation is described in a comment at the bottom of the file.
 *)
 
-type 'sort internalSort = NormalSort of 'sort | ListSort of 'sort | PostFixSort of 'sort | AtomSort of 'sort
+type 'sort internalSort = NormalSort of 'sort | PostFixSort of 'sort | AtomSort of 'sort
 type 'label internalLabel = NormalLabel of 'label | ConsLabel of 'label | NilLabel | OfListLabel
 
 let show_internalLabel (show_label : 'label -> string) (l : 'label internalLabel) : string =
@@ -210,7 +210,6 @@ let show_internalSort (show_sort : 'sort -> string) : 'sort internalSort -> stri
   fun s ->
   match s with
   | NormalSort s -> show_sort s
-  | ListSort s -> "List: " ^ show_sort s
   | PostFixSort s -> "PostFix: " ^ show_sort s
   | AtomSort s -> "Atom: " ^ show_sort s
 
@@ -221,7 +220,7 @@ let rewriteInputPattern (compare : 'sort -> 'sort -> bool) (leftRecursiveSorts :
   | RegPattern r -> RegPattern r
   | SortPattern s ->
     if (Option.is_some (List.find_opt (compare s) leftRecursiveSorts))
-      then SortPattern (ListSort s)
+      then SortPattern (NormalSort s)
       else SortPattern (NormalSort s)
 
 (* the two special rules for each sort *)
@@ -229,9 +228,10 @@ let nilRule (s : 'sort) : ('sort internalSort, 'label internalLabel) rule =
   Rule (NilLabel, PostFixSort s, [])
 
 let ofListRule (s : 'sort) : ('sort internalSort, 'label internalLabel) rule  =
-  Rule(OfListLabel, ListSort s, [SortPattern (AtomSort s); SortPattern (PostFixSort s)])
+  Rule(OfListLabel, NormalSort s, [SortPattern (AtomSort s); SortPattern (PostFixSort s)])
 
 let rewriteRules (compare : 'sort -> 'sort -> bool) (rules : ('sort, 'label) language) : ('sort internalSort, 'label internalLabel) language =
+  (* TODO: This will have duplicates potentially for sorts used in left recursion multiple times... *)
   let sortsUsedInLeftRecursion = List.filter_map (
     fun (Rule(_label, sort, patterns)) -> match patterns with
       | SortPattern p :: _rest when compare p sort -> Some sort
@@ -252,7 +252,6 @@ let rewriteRules (compare : 'sort -> 'sort -> bool) (rules : ('sort, 'label) lan
 let rewriteCompare (compare : 'sort -> 'sort -> bool) : ('sort internalSort -> 'sort internalSort -> bool) =
   fun s1 s2 -> match s1, s2 with
   | NormalSort s1', NormalSort s2' -> compare s1' s2'
-  | ListSort s1', ListSort s2' -> compare s1' s2'
   | PostFixSort s1', PostFixSort s2' -> compare s1' s2'
   | AtomSort s1', AtomSort s2' -> compare s1' s2'
   | _ -> false
@@ -307,7 +306,7 @@ let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (s
    c
    
    where s1 matches with c, this rule is left recursive.
-   We then create a new sort (ListSort s1), and create new rules:
+   We then create a new sort (NormalSort s1), and create new rules:
 
    s2 ... sn (PostFixSort s1)
    -------------------------- ConsLabel r
@@ -318,9 +317,9 @@ let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (s
 
   (AtomSort s1) (PostFixSort s1)
   --------------------------------------- (OfListLabel s1)
-  ListSort s1
+  NormalSort s1
 
-  Then, for any other input premise matching with s1, convert it to (ListSort s1),
+  Then, for any other input premise matching with s1, convert it to (NormalSort s1),
   and for any other output premise matching with s1, convert it to (AtomSort s1).
 
 
@@ -345,7 +344,7 @@ let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (s
   ------------------------- ConsLabel plus
   PostFixSort Term
 
-  "f" (ListSort Term)
+  "f" (NormalSort Term)
   --------------------
   AtomSort Term
 
@@ -360,5 +359,5 @@ let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (s
 
   (AtomSort Term) (PostFixSort Term)
   ---------------------------------- OfListLabel Term
-  ListSort Term
+  NormalSort Term
    *)
