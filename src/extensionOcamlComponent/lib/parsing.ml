@@ -224,6 +224,16 @@ let rewriteInputPattern (compare : 'sort -> 'sort -> bool) (leftRecursiveSorts :
       then SortPattern (NormalSort s)
       else SortPattern (NormalSort s)
 
+let rewriteConsInputPattern (isRecursiveSort : 'sort -> bool) (p : 'sort pattern) : 'sort internalSort pattern =
+  match p with
+  | Keyword s -> Keyword s
+  | NewlinePattern -> NewlinePattern
+  | RegPattern r -> RegPattern r
+  | SortPattern s ->
+    if (isRecursiveSort s)
+      then SortPattern (AtomSort s)
+      else SortPattern (NormalSort s)
+
 (* the two special rules for each sort *)
 let nilRule (s : 'sort) : ('sort internalSort, 'label internalLabel) rule =
   Rule (NilLabel, PostFixSort s, [])
@@ -242,7 +252,7 @@ let rewriteRules (compare : 'sort -> 'sort -> bool) (rules : ('sort, 'label) lan
     fun (Rule(label, sort, patterns)) -> match patterns with
       (* left recursive rule *)
       | SortPattern p :: rest when compare p sort ->
-        Rule(ConsLabel label, PostFixSort sort, (List.map (rewriteInputPattern compare sortsUsedInLeftRecursion) rest) @ [SortPattern (PostFixSort sort)])
+        Rule(ConsLabel label, PostFixSort sort, (List.map (rewriteConsInputPattern (compare sort)) rest) @ [SortPattern (PostFixSort sort)])
       (* regular rule *)
       | _ -> Rule(NormalLabel label,
           (if (Option.is_some (List.find_opt (compare sort) sortsUsedInLeftRecursion)) then AtomSort sort else NormalSort sort),
@@ -312,7 +322,7 @@ let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (s
    where s1 matches with c, this rule is left recursive.
    We then create a new sort (NormalSort s1), and create new rules:
 
-   (AtomSort s1) s2 ... sn
+   (AtomSort s1) s2 ... sn                          (where is sn matches with s1, then make it (AtomSort sn) instead)
    -------------------------- ConsLabel r
    PostFixSort s1
 
@@ -338,8 +348,8 @@ let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (s
   Is transformed into
 
 
-  "+" (PostFixSort Term)
-  ------------------------- ConsLabel plus
+  "+" (NormalSort Term) (PostFixSort Term)
+  ------------------------------------------- ConsLabel plus
   PostFixSort Term
 
   "f" (NormalSort Term)
@@ -361,10 +371,15 @@ let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (s
    *)
 
 (*
- TODO: Currently, the code doesn't correspond to this explanation at the (ConsLabel plus) constructor.
- In the code, that second input is (NormalSort Term) instead of (PostFixSort Term).  
+ Current issue: We end up with
+ (cons "+" (OfList 5 (cons "+" (OfList 5 Nil))) Nil)
+ Instead of
+ (cons "+" (OfList 5 Nil) (cons "+" (OfList 5 Nil) Nil)))
 
- Maybe I should keep it the way it is in the code, and make the unravelList function deal with it?
+ So, maybe inputs to any Cons should get rewritten to be atoms?
+
+
+ ANOTHER IDEA:
 
  Maybe OfListLabel and Cons should actually be the same thing?
  ^^^^^ This seems right.
