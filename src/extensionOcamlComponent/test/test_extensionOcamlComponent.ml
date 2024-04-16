@@ -45,6 +45,12 @@ let testSpecSpec (_ : unit) =
         ------------- "(_)"
         Term ?a
       }
+
+      {
+        Regex ?x "Yes"
+        ------------------ "testString _"
+        Term Num
+      }
     |};
   in
 
@@ -55,7 +61,7 @@ let testSpecSpec (_ : unit) =
   (* The program to be checked *)
   let program = [
     {|
-5 + 5 + 5
+    5 + (testString Yes)
     |};
   ] in
 

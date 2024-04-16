@@ -26,8 +26,9 @@ I could just have part of it that it processes afterwards, but it would be nice 
 [x] - In specSpec, make simplified syntax for lambdas with multiple args
 [x] - Add hidden premises to specSpec.
 [x] - Write code that reads a parsed specSpec ast and builds a lang
-[ ] - in specSpec, make a way to deal with regexes.
+[x] - in specSpec, make a way to deal with regexes.
     - All I need to do is make string literals, you can already write "Regex ?x _".
+[ ] - Make it so that errors resulting from leftover hidden constraints are displayed
 [ ] - Figure out some way that you can specify the top sort in the spec. Or maybe the top sort is always just "Top" or something.
 [ ] - It can be confusing the difference between parse and type error. Maybe make parser prefer matches with correct sort, but if it doesn't work
     then uses any match? Or maybe that makes no sense with backtracking involved?
@@ -36,6 +37,3 @@ I could just have part of it that it processes afterwards, but it would be nice 
 [ ] - Implement the "messages" section of the lang
 [ ] - Write code that prints out a tree of labels, given a lang describing the looks.
     - Will also need to deal with regexSort stuff.
-
-
-Where I left off - I seem to have introduced a bug that left-recursive rules are now right associative.

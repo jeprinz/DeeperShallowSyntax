@@ -45,6 +45,11 @@ let getMV (globalMvNames : id StringMap.t ref) (name : string) =
     else globalMvNames := StringMap.add name (freshId ()) !globalMvNames;
   StringMap.find name !globalMvNames
 
+(* Takes a string literal from the source, and turns it into the string it represents.
+   For now, this just strips the surrounding quotes. But later, I can deal with escape characters and stuff in here.*)
+let processStringLiteral (lit : string) : string =
+  String.sub lit 1 (String.length lit - 2)
+
 let rec termAstToTerm (mvEnv : id StringMap.t ref) (globalMvNames : id StringMap.t ref) (localEnv : string list) (t : string ast) : term =
   match t with
   | Node((AstNode "Lambda", _, _), [Node((AstNode "VarListNil", _, _), []); body]) -> termAstToTerm mvEnv globalMvNames localEnv body
@@ -58,6 +63,7 @@ let rec termAstToTerm (mvEnv : id StringMap.t ref) (globalMvNames : id StringMap
       | Some n -> Var n
       | None -> MetaVar (getMV globalMvNames name))
   | Node((AstNode "Const", _, _), [nameRegex]) -> Const (regexAstToString nameRegex)
+  | Node((AstNode "String", _, _), [value]) -> Const (processStringLiteral (regexAstToString value))
   | Node((AstNode "MetaVar", _, _), [nameRegex]) -> MetaVar (getMV mvEnv (regexAstToString nameRegex))
   | _ -> raise (Error "Term ast wasn't of correct form")
 
@@ -255,6 +261,18 @@ let spec : inductive = [
       equalities = [];
       disequalities = [];
   });
+
+  (* String literals are surrounded by quotes *)
+  makeRule (fun var -> {
+      name = "String";
+      look = [NameHole];
+      premises = [regexSort (var "name") "\"[^\"]*\""];
+      hiddenPremises = [];
+      conclusion = termSort (var "ctx");
+      equalities = [];
+      disequalities = [];
+  });
+
 
   makeRule (fun var -> {
       name = "VarZero";

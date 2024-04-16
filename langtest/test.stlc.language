@@ -1,1 +1,1 @@
-fun Dummy => 5
+(fun yonk => plus yonks 5) 5

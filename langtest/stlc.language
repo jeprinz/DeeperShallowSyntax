@@ -1,10 +1,35 @@
 {
-    Regex ?x Dummy, Term
-    ------------------- "fun _ => _"
-    Term
-}
-
-{
-    ---------- "5"
-    Term
+    Name ?name, Term (Cons ?name ?A ?ctx) ?B
+    --------------------------------------------- "fun _ => _"
+    Term ?ctx (Arrow ?A ?B)
+} {
+    Term ?ctx (Arrow ?A ?B), Term ?ctx ?A
+    ---------------------------------------- "_ _"
+    Term ?ctx ?B
+} {
+    Name ?name,
+    {InCtx ?name ?ctx ?ty}
+    -------------------------------- "_"
+    Term ?ctx ?ty
+} {
+    Term ?ctx ?ty
+    ------------------ "(_)"
+    Term ?ctx ?ty
+} {
+    Regex ?name "[a-zA-Z]+"
+    ------------------------- "_"
+    Name ?name
+} {
+    ------------------- "5"
+    Const Number
+} {
+    ------------------- "true"
+    Const Bool
+} {
+    Const ?ty
+    ------------------ "_"
+    Term ?ctx ?ty
+} {
+    ----------------------- "plus"
+    Const (Arrow Number (Arrow Number Number))
 }

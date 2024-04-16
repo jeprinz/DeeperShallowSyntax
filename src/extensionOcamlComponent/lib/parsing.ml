@@ -299,7 +299,7 @@ let doParse (lang : ('sort, 'label) language) (show_rule : 'label -> string) (sh
   let internalRules = rewriteRules compare lang in
   match (parse (rewriteCompare compare) internalRules (show_internalLabel show_rule) (show_internalSort show_sort) lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) with
   | Ok ast ->
-    print_endline ("Parsed internal tree: " ^ show_tree (fun l -> show_ast_label_short_2 (show_internalLabel (fun x -> x)) l) ast);
+    (* print_endline ("Parsed internal tree: " ^ show_tree (fun l -> show_ast_label_short_2 (show_internalLabel (fun x -> x)) l) ast); *)
     Ok (convertBack ast)
   | Error (msg, pos) -> Error ("At " ^ show_position pos ^ " " ^ msg)
 
