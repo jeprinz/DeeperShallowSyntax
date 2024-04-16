@@ -1,1 +1,1 @@
-(fun yonk => plus yonks 5) 5
+(fun yonk => yonk 50) (fun x => plus x x)

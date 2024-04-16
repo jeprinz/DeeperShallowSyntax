@@ -1,0 +1,22 @@
+var = \name ctx ty t. Var name ctx ty t
+cons = \gamma ty. Cons gamma ty
+
+app = \t1 t2 gamma. (t1 gamma) (t2 gamma)
+lam = \body gamma. \a. body (cons gamma a)
+
+{
+    Name ?name,
+    {var ?name ?ctx ?ty ?t}
+    -------------------------------- "_"
+    Term ?ctx ?ty ?t
+}
+{
+    --------------------------------- ""
+    var ?x (Cons ?x ?ty ?rest) ?ty
+}
+{
+    var ?x ?ctx ?b,
+    ?x != ?y
+    --------------------------------- "_"
+    var ?x (Cons ?y ?a ?ctx) ?b
+}
