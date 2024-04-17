@@ -28,7 +28,8 @@ I could just have part of it that it processes afterwards, but it would be nice 
 [x] - Write code that reads a parsed specSpec ast and builds a lang
 [x] - in specSpec, make a way to deal with regexes.
     - All I need to do is make string literals, you can already write "Regex ?x _".
-[ ] - Make it so that errors resulting from leftover hidden constraints are displayed
+[x] - Make it so that errors resulting from leftover hidden constraints are displayed
+[ ] - I need to put pairs, fst, snd and any other lambda calculus pieces into the spec format.
 [ ] - Figure out some way that you can specify the top sort in the spec. Or maybe the top sort is always just "Top" or something.
 [ ] - It can be confusing the difference between parse and type error. Maybe make parser prefer matches with correct sort, but if it doesn't work
     then uses any match? Or maybe that makes no sense with backtracking involved?

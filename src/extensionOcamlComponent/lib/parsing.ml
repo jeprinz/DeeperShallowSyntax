@@ -84,7 +84,8 @@ type ('sort, 'label) path =
 let show_top_of_path (show_label : 'label -> string) (p : ('sort, 'label) path) : string =
   match p with
   | Top _ -> "TOP"
-  | PNode (_above, label, _pos, _matchedSoFar, _patternsLeft) -> "Where: " ^ show_label label
+  | PNode (PNode(_, label2, _, _, _), label1,_, _, _) -> "Where2: " ^ show_label label1 ^ " " ^ show_label label2
+  | PNode (_above, label, _pos, _matchedSoFar, _patternsLeft) -> "Where1: " ^ show_label label
 
 (* To prevent infinite recursion on left-recursive rules, this function checks if any input has been accepted since the last instance of a rule. *)
 let rec amILooping (path : ('sort, 'label) path) (ctr : 'label) (pos : position) : bool =
@@ -141,7 +142,8 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
         List.find_map
           (fun (Rule(newLabel, newSort, newPattern)) ->
             if not (compare newSort sort) || (amILooping above newLabel pos) then
-              (newPossibleError ("No rule matches with sort " ^ show_sort sort) ; None)
+              (* TODO: There is no reason for this to run once for each non-matching rule.*)
+              (newPossibleError ("No rule matches with sort " ^ show_sort sort ^ "In parent rule " ^ show_top_of_path show_rule above) ; None)
             else
               (parseImpl remainingLines pos (PNode (above, newLabel, pos, [], newPattern))) 
           )

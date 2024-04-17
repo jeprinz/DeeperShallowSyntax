@@ -1,1 +1,2 @@
-(fun yonk => yonk 50) (fun x => plus x x)
+(fun yonk => yonk 50 (fun z => z))
+    (fun x => fun x => x 0)

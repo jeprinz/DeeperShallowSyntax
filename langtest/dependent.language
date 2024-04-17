@@ -1,22 +1,78 @@
-var = \name ctx ty t. Var name ctx ty t
-cons = \gamma ty. Cons gamma ty
+nil = Nil
+cons = \gamma name ty. (gamma, (name, ty))
 
-app = \t1 t2 gamma. (t1 gamma) (t2 gamma)
-lam = \body gamma. \a. body (cons gamma a)
+zero = snd
+succ = \x gamma. x (fst gamma)
 
+pi = \x y. Pi x y
+arrow = \x y. Pi x (weaken y)
+type = Type
+
+var = \x. x
+lambda = \t. \gamma a. t (gamma, a)
+app = \t1 t2. \gamma. (t1 gamma) (t2 gamma)
+
+weaken = \t. \gamma. t (fst gamma)
+
+{
+    Regex ?name "[a-zA-Z]+"
+    ------------------------- "_"
+    Name ?name
+}
+{
+    ----------------------------------------------------- ""
+    Var (cons ?Gamma ?name ?T) (weaken ?T) zero ?name
+}
+{
+    Var ?ctx ?T ?i ?name,
+    ?name != ?othername
+    -------------------------------------------------------------------- "_"
+    Var (cons ?Gamma ?othername ?othertype) (weaken ?T) (succ ?i) ?name
+}
 {
     Name ?name,
-    {var ?name ?ctx ?ty ?t}
+    Term ?gamma type ?A,
+    Term (cons ?Gamma ?name ?A) ?B ?body
+    ------------------------------------------ "fun _ : _ => _"
+    Term ?Gamma (pi ?A ?B) (lambda ?body)
+}
+{
+    Name ?name,
+    Term (cons ?Gamma ?name ?A) ?B ?body
+    ------------------------------------------ "fun _ => _"
+    Term ?Gamma (pi ?A ?B) (lambda ?body)
+}
+{
+    Term ?Gamma (pi ?A ?B) ?t1,
+    Term ?Gamma ?A ?t2
+    ---------------------------------------------------------- "_ _"
+    Term ?Gamma (\gamma. B (gamma, ?t2 gamma)) (app ?t1 ?t2)
+}
+{
+    -------------------------- "Type"
+    Term ?Gamma type type
+}
+{
+    Name ?name,
+    Term ?G type ?A,
+    Term (cons ?G ?name ?A) type ?B,
+    ------------------------------------ "(_ : _) -> _"
+    Term ?G type (pi ?A ?B)
+}
+{
+    Term ?G type ?A,
+    Term (cons ?G NoName ?A) type ?B,
+    ------------------------------------ "_ -> _"
+    Term ?G type (pi ?A ?B)
+}
+{
+    Term ?G ?T ?t
+    --------------- "(_)"
+    Term ?G ?T ?t
+}
+{
+    Name ?name,
+    {Var ?ctx ?ty ?t ?name}
     -------------------------------- "_"
-    Term ?ctx ?ty ?t
-}
-{
-    --------------------------------- ""
-    var ?x (Cons ?x ?ty ?rest) ?ty
-}
-{
-    var ?x ?ctx ?b,
-    ?x != ?y
-    --------------------------------- "_"
-    var ?x (Cons ?y ?a ?ctx) ?b
+    Term ?ctx ?ty (var ?t)
 }

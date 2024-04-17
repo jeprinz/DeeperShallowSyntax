@@ -55,7 +55,7 @@ let testSpecSpec (_ : unit) =
   in
 
   let langSpec = 
-{|{{Test Bla} -"a" Top } |}
+{|{{Test Bla} -"a" (fst (\x y.x, \x y.y)) } |}
   in
 
   (* The program to be checked *)
@@ -89,6 +89,7 @@ let testSpecSpec (_ : unit) =
       (* log_time "start convert to inductive"; *)
       let lang = specAstToLang t in
       (* log_time "end convert to inductive"; *)
+      print_endline ("Conclusion of first constructor: " ^ (show_term ((List.hd lang).constructor.conclusion)));
 
       let topSort = freshMetaVar () in
       let progParser = makeParser lang in (* TODO: This should take sub!*)

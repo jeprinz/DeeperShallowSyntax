@@ -63,6 +63,9 @@ let rec termAstToTerm (mvEnv : id StringMap.t ref) (globalMvNames : id StringMap
       | Some n -> Var n
       | None -> MetaVar (getMV globalMvNames name))
   | Node((AstNode "Const", _, _), [nameRegex]) -> Const (regexAstToString nameRegex)
+  | Node((AstNode "Pair", _, _), [t1; t2]) -> Pair (termAstToTerm mvEnv globalMvNames localEnv t1, termAstToTerm mvEnv globalMvNames localEnv t2)
+  | Node((AstNode "Proj1", _, _), []) -> Proj1
+  | Node((AstNode "Proj2", _, _), []) -> Proj2
   | Node((AstNode "String", _, _), [value]) -> Const (processStringLiteral (regexAstToString value))
   | Node((AstNode "MetaVar", _, _), [nameRegex]) -> MetaVar (getMV mvEnv (regexAstToString nameRegex))
   | _ -> raise (Error "Term ast wasn't of correct form")
@@ -229,6 +232,28 @@ let spec : inductive = [
       disequalities = [];
     });
 
+  (* first projection *)
+  makeRule (fun var -> {
+      name = "Proj1";
+      look = [NameKeyword "fst"];
+      premises = [];
+      hiddenPremises = [];
+      conclusion = termSort (var "ctx");
+      equalities = [];
+      disequalities = [];
+  });
+  
+  (* second projection *)
+  makeRule (fun var -> {
+      name = "Proj2";
+      look = [NameKeyword "snd"];
+      premises = [];
+      hiddenPremises = [];
+      conclusion = termSort (var "ctx");
+      equalities = [];
+      disequalities = [];
+  });
+
   (* Variables start with a lower case letter *)
   makeRule (fun var -> {
       name = "Var";
@@ -245,6 +270,17 @@ let spec : inductive = [
       name = "Const";
       look = [NameHole];
       premises = [regexSort (var "name") "[A-Z][A-Za-z0-9]*"];
+      hiddenPremises = [];
+      conclusion = termSort (var "ctx");
+      equalities = [];
+      disequalities = [];
+  });
+
+  (* Pairs *)
+  makeRule (fun var -> {
+      name = "Pair";
+      look = [NameKeyword "("; NameHole; NameKeyword ","; NameHole; NameKeyword ")"];
+      premises = [termSort (var "ctx"); termSort (var "ctx")];
       hiddenPremises = [];
       conclusion = termSort (var "ctx");
       equalities = [];

@@ -15,11 +15,6 @@
     Term ?ctx ?ty
 }
 {
-    f ?ctx == g ?ctx
-    ------------------------------------------------------- ""
-    InCtx "plus" ?ctx (Arrow Number (Arrow Number Number))
-}
-{
     --------------------------------- ""
     InCtx ?x (Cons ?x ?ty ?rest) ?ty
 }
