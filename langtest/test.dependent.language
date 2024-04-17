@@ -1,1 +1,1 @@
-(fun x : Type => x) Type
+(fun x : Type => fun y => x)

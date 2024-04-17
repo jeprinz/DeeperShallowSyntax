@@ -10,58 +10,35 @@ let testSpecSpec (_ : unit) =
   let parserSpec = makeParser spec in
   
   (* The specification for the program *)
-  let _langSpec =
+  let langSpec =
     {|
-      {
-        Term Num, Term Num
-        ----------------------- "_ + _"
-        Term Num
-      }
-
-      {
-        Term Num, Term Num
-        ---------------------- "_ == _"
-        Term Bool
-      }
-
-      {
-        ----------- "5"
-        Term Num
-      }
-
-      {
-        ----------- "true"
-        Term Bool
-      }
-
-      {
-        Term Bool
-        ---------- "tonum _"
-        Term Num
-      }
-
-      {
-        Term ?a
-        ------------- "(_)"
-        Term ?a
-      }
-
-      {
-        Regex ?x "Yes"
-        ------------------ "testString _"
-        Term Num
-      }
+{
+    C1,
+    Bla1
+    ------ "_ + _"
+    C2
+}
+{
+  ------ "f"
+  ?any
+}
+{
+    C4,
+    ?x2
+    ---- "_ -> _"
+    C4 
+}
     |};
   in
 
-  let langSpec = 
+  let _langSpec = 
 {|{{Test Bla} -"a" (fst (\x y.x, \x y.y)) } |}
   in
 
   (* The program to be checked *)
   let program = [
     {|
-      a
+    f + f
     |};
   ] in
 

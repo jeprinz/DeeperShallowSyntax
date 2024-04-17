@@ -38,3 +38,7 @@ I could just have part of it that it processes afterwards, but it would be nice 
 [ ] - Implement the "messages" section of the lang
 [ ] - Write code that prints out a tree of labels, given a lang describing the looks.
     - Will also need to deal with regexSort stuff.
+
+
+The bug I'm currently working on in test: By making app left recursive, it changes parsing behavior?
+The other _->_ constructor creates an issue with it?

@@ -46,7 +46,7 @@ weaken = \t. \gamma. t (fst gamma)
     Term ?Gamma (pi ?A ?B) ?t1,
     Term ?Gamma ?A ?t2
     ---------------------------------------------------------- "_ _"
-    Term ?Gamma (\gamma. B (gamma, ?t2 gamma)) (app ?t1 ?t2)
+    Term ?Gamma (\gamma. ?B (gamma, ?t2 gamma)) (app ?t1 ?t2)
 }
 {
     -------------------------- "Type"
