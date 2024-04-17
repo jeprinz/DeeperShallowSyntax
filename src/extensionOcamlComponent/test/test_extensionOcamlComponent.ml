@@ -12,6 +12,7 @@ let testSpecSpec (_ : unit) =
   (* The specification for the program *)
   let langSpec =
     {|
+/* hello */
 {
     C1,
     Bla1
@@ -23,7 +24,7 @@ let testSpecSpec (_ : unit) =
   ?any
 }
 {
-    C4,
+    C3,
     ?x2
     ---- "_ -> _"
     C4 

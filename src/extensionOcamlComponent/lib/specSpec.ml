@@ -25,6 +25,7 @@ let premise (ctx : term) : term = App (Const "Premise", ctx)
 let nameComponentSort  : term = Const "NameComponent"
 let nameComponentListSort : term = Const "NameComponentList"
 let varListSort (ctxOutside : term) (ctxInside : term)  : term = App(App(Const "VarList", ctxOutside), ctxInside)
+let commentListSort : term = Const "CommentList"
 
 let regexAstToString (t : string ast) : string =
   match t with
@@ -121,6 +122,7 @@ let specAstToLang (t : string ast) : inductive =
   let ruleNumber = ref 0 in
   let rec impl (t : string ast) : constructor list =
     match t with
+    | Node((AstNode "CommentCons", _, _), [_comment; rest]) -> impl rest
     | Node((AstNode "LambdaDefCons", _, _), [nameRegex; term; rest]) ->
       let t = termAstToTerm metavarMvNames globalMvNames [] term in
       globalEnv := IntMap.add (getMV globalMvNames (regexAstToString nameRegex)) t !globalEnv;
@@ -173,6 +175,39 @@ let spec : inductive = [
       premises = [];
       hiddenPremises = [];
       conclusion = topLevel (var "ctx") (var "ctx");
+      equalities = [];
+      disequalities = [];
+    });
+
+  makeRule (fun var -> 
+    {
+      name = "CommentCons";
+      look = [NameKeyword "/*"; NameHole; NameKeyword "*/"; NameHole];
+      premises = [commentListSort; topLevel (var "ctx") (var "ctxFull")];
+      hiddenPremises = [];
+      conclusion = topLevel (var "ctx") (var "ctxFull");
+      equalities = [];
+      disequalities = [];
+    });
+
+  makeRule (fun _var -> 
+    {
+      name = "CommentNil";
+      look = [];
+      premises = [];
+      hiddenPremises = [];
+      conclusion = commentListSort;
+      equalities = [];
+      disequalities = [];
+    });
+
+  makeRule (fun var -> 
+    {
+      name = "CommentListCons";
+      look = [NameHole; NameHole];
+      premises = [regexSort (var "comment") "[^(\*/)]*"; commentListSort];
+      hiddenPremises = [];
+      conclusion = commentListSort;
       equalities = [];
       disequalities = [];
     });
