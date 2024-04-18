@@ -1,11 +1,21 @@
+{
+    ---------------- ""
+    IsId (\x . x)
+}
+{
+    {IsId ?delay},
+    {ThisShouldBeId ?delay},
+    ------------------- "test"
+    Top
+}
 nil = Nil
 cons = \gamma name ty. (gamma, (name, ty))
 
 zero = snd
 succ = \x gamma. x (fst gamma)
 
-pi = \x y. Pi x y
-arrow = \x y. Pi x (weaken y)
+pi = \x y. \gamma. Pi (x gamma) (\a. y (gamma, a))
+arrow = \x y. pi x (weaken y)
 type = \gamma. Type
 
 var = \x. x
@@ -20,18 +30,27 @@ weaken = \t. \gamma. t (fst gamma)
     Name ?name
 }
 {
+    {WouldUnifyThis ?x1 ?x2 ?x3 ?x4},
+    {WithThis (cons ?Gamma ?name ?T) (weaken ?T) zero ?name},
+    {IsId ?delay},
+    {ThisShouldBeId ?delay},
+    ?delay Var ?x1 ?x2 ?x3 ?x4 == ?delay Var (cons ?Gamma ?name ?T) (weaken ?T) zero ?name
+    ------------------- "test"
+    Var ?x1 ?x2 ?x3 ?x4
+}
+{
     ----------------------------------------------------- ""
-    Var (cons ?Gamma ?name ?T) (weaken ?T) zero ?name
+    XVar (cons ?Gamma ?name ?T) (weaken ?T) zero ?name
 }
 {
     Var ?Gamma ?T ?i ?name,
     ?name != ?othername
     -------------------------------------------------------------------- "_"
-    Var (cons ?Gamma ?othername ?othertype) (weaken ?T) (succ ?i) ?name
+    XVar (cons ?Gamma ?othername ?othertype) (weaken ?T) (succ ?i) ?name
 }
 {
     Name ?name,
-    Term ?gamma type ?A,
+    Term ?Gamma type ?A,
     Term (cons ?Gamma ?name ?A) ?B ?body
     ------------------------------------------ "fun _ : _ => _"
     Term ?Gamma (pi ?A ?B) (lambda ?body)
@@ -53,10 +72,6 @@ weaken = \t. \gamma. t (fst gamma)
     Term ?Gamma type type
 }
 {
-    -------------------------- "Type2"
-    Term ?Gamma type Type2
-}
-{
     Name ?name,
     Term ?G type ?A,
     Term (cons ?G ?name ?A) type ?B,
@@ -65,9 +80,9 @@ weaken = \t. \gamma. t (fst gamma)
 }
 {
     Term ?G type ?A,
-    Term (cons ?G NoName ?A) type ?B,
-    ------------------------------------ "X_ -> _"
-    Term ?G type (pi ?A ?B)
+    Term ?G type ?B,
+    ------------------------------------ "_ -> _"
+    Term ?G type (arrow ?A ?B)
 }
 {
     Term ?G ?T ?t
@@ -78,7 +93,12 @@ weaken = \t. \gamma. t (fst gamma)
  */
 {
     Name ?name1,
-    {Var ?ctx ?ty1 ?t ?name1},
+    {Var ?ctx ?ty ?t ?name1},
     -------------------------------- "_"
     Term ?ctx ?ty (var ?t)
+}
+{
+    {HoleOf Context ?ctx Type ?ty Term ?t}
+    ------------------------- "?"
+    Term ?ctx ?ty ?t
 }

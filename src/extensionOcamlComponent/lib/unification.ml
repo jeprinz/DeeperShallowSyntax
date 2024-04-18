@@ -245,10 +245,11 @@ exception Failure of equation
    Also, I can use a Lazy type somewhere, so that the same reduction doesn't need to be done twice.*)
 
 let rec processEq : (equation -> (equation list) option) unifyM =
-  fun env eq ->
+  fun env (t1Pre, t2Pre) ->
   (* (match eq with
   | x, y -> print_endline ("In unify, processing: " ^ show_term x ^ " = " ^ show_term y))
   ; *)
+  let eq = (norm (metaSubst !env t1Pre), norm (metaSubst !env t2Pre)) in
   let ifFail = Failure eq in
   match eq with
   | Lam t1, Lam t2 -> Some [(t1, t2)]
@@ -289,6 +290,7 @@ let rec processEq : (equation -> (equation list) option) unifyM =
   | t1, App (Proj1, t2) | App (Proj1, t2), t1 -> Some [t2, Pair(t1, MetaVar (freshId ()))]
   | t1, App (Proj2, t2) | App (Proj2, t2), t1 -> Some [t2, Pair(MetaVar (freshId ()), t1)]
   | t1, t2 when reducedAreDefinitelyUnequal t1 t2 -> raise ifFail
+  | t1, t2 when norm (metaSubst !env t1) = norm (metaSubst !env t2) -> Some []
   | _ -> None
 
 (* Note that the resulting substitution is NOT idempotent *)

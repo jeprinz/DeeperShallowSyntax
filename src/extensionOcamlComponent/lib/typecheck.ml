@@ -64,7 +64,8 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
     ) lang in
     match fittingCtrs with
     | [] -> 
-        makeError {pos = ct.pos; preMessage = fun sub -> "Constraint had no solution: " ^ show_term (metaSubst sub ct.sort);};
+        let currentSub = !sub in
+        makeError {pos = ct.pos; preMessage = fun sub -> "Constraint had no solution: " ^ show_term (metaSubst sub ct.sort) ^ "(At the time, " ^ show_term (metaSubst currentSub ct.sort) ^" )";};
         Some []
     | (sub', equations', ctr) :: [] ->
         (* If there is exactly one matching constructor, then we need to update the various enviroment to reflect the new constraints added.*)

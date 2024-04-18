@@ -44,8 +44,8 @@ cons = \gamma name ty. (gamma, (name, ty))
 zero = snd
 succ = \x gamma. x (fst gamma)
 
-pi = \x y. Pi x y
-arrow = \x y. Pi x (weaken y)
+pi = \x y. \gamma. Pi (x gamma) (\a. y (gamma, a))
+arrow = \x y. pi x (weaken y)
 type = \gamma. Type
 
 var = \x. x
@@ -71,7 +71,7 @@ weaken = \t. \gamma. t (fst gamma)
 }
 {
     Name ?name,
-    Term ?gamma type ?A,
+    Term ?Gamma type ?A,
     Term (cons ?Gamma ?name ?A) ?B ?body
     ------------------------------------------ "fun _ : _ => _"
     Term ?Gamma (pi ?A ?B) (lambda ?body)
@@ -93,22 +93,17 @@ weaken = \t. \gamma. t (fst gamma)
     Term ?Gamma type type
 }
 {
-    -------------------------- "Type2"
-    Term ?Gamma type Type2
-}
-{
     Name ?name,
     Term ?G type ?A,
     Term (cons ?G ?name ?A) type ?B,
     ------------------------------------ "(_ : _) -> _"
     Term ?G type (pi ?A ?B)
 }
-s djflkasd jfasdk fj
 {
     Term ?G type ?A,
-    Term (cons ?G NoName ?A) type ?B,
+    Term ?G type ?B,
     ------------------------------------ "_ -> _"
-    Term ?G type (pi ?A ?B)
+    Term ?G type (arrow ?A ?B)
 }
 {
     Term ?G ?T ?t
@@ -119,9 +114,14 @@ s djflkasd jfasdk fj
  */
 {
     Name ?name1,
-    {Var ?ctx ?ty1 ?t ?name1},
+    {Var ?ctx ?ty ?t ?name1},
     -------------------------------- "_"
     Term ?ctx ?ty (var ?t)
+}
+{
+    {HoleOf Context ?ctx Type ?ty Term ?t}
+    ------------------------- "?"
+    Term ?ctx ?ty ?t
 }
     |};
   in
@@ -133,7 +133,11 @@ s djflkasd jfasdk fj
   (* The program to be checked *)
   let program = [
     {|
-(fun x : Type => fun y : Type => x) (fun x => x)
+fun A : Type => fun B : Type =>
+fun asdf : ? -> ? =>
+fun acceptsA : A -> Type =>
+fun x : ((f : Type -> (Type -> Type)) -> f A B) =>
+    acceptsA (x (fun a => fun b => a))
     |};
   ] in
 
@@ -191,8 +195,11 @@ s djflkasd jfasdk fj
 
 
 let _ =
-    testSpecSpec ();
+    (* testSpecSpec (); *)
     log_time "done";
 
   (* print_endline (string_of_bool (Option.is_some (unify [App (Const "a", MetaVar (freshId ())), App (Const "b", MetaVar (freshId ()))]))); *)
+  (* probably leftover equation here that should be solved. I need to rework the unification. *)
+  (* Unification needs to deal with cases like (<metavar> ... = <metavar> ...) in general. I only have a few special cases in there now.*)
+  print_endline (string_of_bool (Option.is_some (unify [Const "Test", App (MetaVar (freshId ()), Var 0)])));
 
