@@ -143,9 +143,15 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
           (fun (Rule(newLabel, newSort, newPattern)) ->
             if not (compare newSort sort) || (amILooping above newLabel pos) then
               (* TODO: There is no reason for this to run once for each non-matching rule.*)
+              (
+              (* (print_endline ("At path " ^ show_top_of_path show_rule above ^ " NOT trying rule " ^ show_rule newLabel ^ " because " ^ show_sort sort ^ " != " ^ show_sort newSort)); *)
               (newPossibleError ("No rule matches with sort " ^ show_sort sort ^ "In parent rule " ^ show_top_of_path show_rule above) ; None)
+              )
             else
-              (parseImpl remainingLines pos (PNode (above, newLabel, pos, [], newPattern))) 
+              (
+              (* (print_endline ("At path " ^ show_top_of_path show_rule above ^ " trying rule " ^ show_rule newLabel)); *)
+              (parseImpl remainingLines pos (PNode (above, newLabel, pos, [], newPattern)))
+              )
           )
         lang
     in
@@ -262,11 +268,13 @@ let rewriteRules (compare : 'sort -> 'sort -> bool) (rules : ('sort, 'label) lan
   ) rules in
   convertedRules @ (List.map nilRule sortsUsedInLeftRecursion) @ (List.map ofListRule sortsUsedInLeftRecursion)
 
+(* The last case makes sense if I think of this as checking a subset, and atoms are a subset of normal? *)
 let rewriteCompare (compare : 'sort -> 'sort -> bool) : ('sort internalSort -> 'sort internalSort -> bool) =
   fun s1 s2 -> match s1, s2 with
   | NormalSort s1', NormalSort s2' -> compare s1' s2'
   | PostFixSort s1', PostFixSort s2' -> compare s1' s2'
   | AtomSort s1', AtomSort s2' -> compare s1' s2'
+  | AtomSort s1', NormalSort s2' -> compare s1' s2'
   | _ -> false
 
 exception Error of string
@@ -331,7 +339,12 @@ let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (s
   -------------- NilLabel
   (PostFixSort s1)
 
-  and for any non left-recursive output premise matching with s1, convert it to (AtomSort s1).
+  (AtomSort s1) (PostFixSort s1)
+  ---------------------------------- OfListLabel s1
+  NormalSort s1
+
+  And for any non left-recursive output premise matching with s1, convert it to (AtomSort s1).
+
 
   So, for example, the language
 

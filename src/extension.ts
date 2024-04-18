@@ -96,12 +96,16 @@ export function activate(context: vscode.ExtensionContext) {
 
 				let text = vscode.window.activeTextEditor?.document.getText();
 
-				// @ts-ignore
-				let errors = backend.backend.checkSpec(text);
+				try{
+					// @ts-ignore
+					let errors = backend.backend.checkSpec(text);
 
-				console.log("Recieved back:", errors);
-				vscode.window.showInformationMessage("Recieved this many errors:" + errors.length);
-				setErrors(errors);
+					console.log("Recieved back:", errors);
+					vscode.window.showInformationMessage("Recieved this many errors:" + errors.length);
+					setErrors(errors);
+				} catch (e) {
+					vscode.window.showInformationMessage("Exception: " + e);
+				}
 			} else if (progNameMatch){
 				let lang = progNameMatch[1];
 				// This is a specification file with language <lang>
@@ -110,9 +114,13 @@ export function activate(context: vscode.ExtensionContext) {
 				console.log("fullNameWithDir is: " + fullNameWithDir + " and specPath is: " + specPath);
 				vscode.workspace.openTextDocument(specPath).then((specDoc) => {
 					let specText = specDoc.getText();
-					//@ts-ignore
-					let errors = backend.backend.checkProgram(specText, progText);
-					setErrors(errors);
+					try {
+						//@ts-ignore
+						let errors = backend.backend.checkProgram(specText, progText);
+						setErrors(errors);
+					} catch (e) {
+						vscode.window.showInformationMessage("Exception: " + e);
+					}
 				});
 				vscode.window.showInformationMessage('Prog file with extension: ' + lang);
 			} else {

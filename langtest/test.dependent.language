@@ -1,1 +1,1 @@
-(fun x : Type => fun y => x)
+(fun x : ((a : Type) -> Type2) => fun y : Type => x) (fun x => x)

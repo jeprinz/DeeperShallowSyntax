@@ -42,3 +42,10 @@ I could just have part of it that it processes afterwards, but it would be nice 
 
 The bug I'm currently working on in test: By making app left recursive, it changes parsing behavior?
 The other _->_ constructor creates an issue with it?
+
+The problem is demonstrated by the example currently in test.
+The "f" constructor gets an "AtomSort" output because it unifies with the "->" left recursive output,
+but the "OfList" constructor for can't output C2 because it was created with C4 from the "->" rule.
+So, I need to think through the parsing left recursive conversion once again.
+
+Later: I made a fix, but it seems to cause parsing to be slow. Try removing the "X" in front of ->.

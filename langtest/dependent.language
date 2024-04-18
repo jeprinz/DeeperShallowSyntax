@@ -24,7 +24,7 @@ weaken = \t. \gamma. t (fst gamma)
     Var (cons ?Gamma ?name ?T) (weaken ?T) zero ?name
 }
 {
-    Var ?ctx ?T ?i ?name,
+    Var ?Gamma ?T ?i ?name,
     ?name != ?othername
     -------------------------------------------------------------------- "_"
     Var (cons ?Gamma ?othername ?othertype) (weaken ?T) (succ ?i) ?name
@@ -53,6 +53,10 @@ weaken = \t. \gamma. t (fst gamma)
     Term ?Gamma type type
 }
 {
+    -------------------------- "Type2"
+    Term ?Gamma type Type2
+}
+{
     Name ?name,
     Term ?G type ?A,
     Term (cons ?G ?name ?A) type ?B,
@@ -62,7 +66,7 @@ weaken = \t. \gamma. t (fst gamma)
 {
     Term ?G type ?A,
     Term (cons ?G NoName ?A) type ?B,
-    ------------------------------------ "_ -> _"
+    ------------------------------------ "X_ -> _"
     Term ?G type (pi ?A ?B)
 }
 {
@@ -70,9 +74,11 @@ weaken = \t. \gamma. t (fst gamma)
     --------------- "(_)"
     Term ?G ?T ?t
 }
+/*
+ */
 {
-    Name ?name,
-    {Var ?ctx ?ty ?t ?name}
+    Name ?name1,
+    {Var ?ctx ?ty ?t ?name1}
     -------------------------------- "_"
     Term ?ctx ?ty (var ?t)
 }

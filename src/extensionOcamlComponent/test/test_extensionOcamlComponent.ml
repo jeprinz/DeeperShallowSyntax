@@ -12,10 +12,9 @@ let testSpecSpec (_ : unit) =
   (* The specification for the program *)
   let langSpec =
     {|
-/* hello */
 {
-    C1,
-    Bla1
+    C2,
+    ?any1
     ------ "_ + _"
     C2
 }
@@ -23,8 +22,9 @@ let testSpecSpec (_ : unit) =
   ------ "f"
   ?any
 }
+/* hello */
 {
-    C3,
+    C4,
     ?x2
     ---- "_ -> _"
     C4 
@@ -39,7 +39,7 @@ let testSpecSpec (_ : unit) =
   (* The program to be checked *)
   let program = [
     {|
-    f + f
+    f + f + f
     |};
   ] in
 

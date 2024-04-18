@@ -103,7 +103,7 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
       let pos = {left = lpos; right = rpos;} in
       let _ = if not (StringMap.mem label ctrLookup) then print_endline ("Not foudn:::: " ^ label) else () in
       let ctr = freshenRule (StringMap.find label ctrLookup) in
-      processConstraints ();
+      (* processConstraints (); *)
       (* print_endline("At ctr. " ^ ctr.name ^ " unifying: " ^ show_term sort ^ " with " ^ show_term ctr.conclusion ^ " and sub is " ^ show_sub !sub); *)
       match unifyPartially !sub ((sort, ctr.conclusion) :: ctr.equalities @ !equations) with
       | None ->
@@ -130,4 +130,8 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
   let leftoverConstraintErrors = List.map (fun ({pos; sort} : sortConstraint) -> {pos; message= "Constraint unresolved at end: " ^ show_term (metaSubst !sub sort)}) !hiddenJudgements in
   let leftoverDisequalityErrors = List.map (fun {pos; disequality= (t1, t2)} ->
     {pos; message = "Disequality unresolved at end: (" ^ show_term (metaSubst !sub t1) ^ " ?= " ^ show_term (metaSubst !sub t2) ^ ")"}) !disequalityConstraints in
-  leftoverConstraintErrors @ leftoverDisequalityErrors @ !errorMessages
+  let endOfFile = {lineNumber = 999999; posInLine = 999999} in
+  let leftoverEqualities =
+    List.map (fun (t1, t2) ->
+    {pos= {left={lineNumber=0; posInLine=0}; right=endOfFile}; message = "Equality unresolved at end: (" ^ show_term (metaSubst !sub t1) ^ " ?= " ^ show_term (metaSubst !sub t2) ^ ")"}) !equations in
+  leftoverEqualities @ leftoverConstraintErrors @ leftoverDisequalityErrors @ !errorMessages
