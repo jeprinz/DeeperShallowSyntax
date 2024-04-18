@@ -49,3 +49,5 @@ but the "OfList" constructor for can't output C2 because it was created with C4 
 So, I need to think through the parsing left recursive conversion once again.
 
 Later: I made a fix, but it seems to cause parsing to be slow. Try removing the "X" in front of ->.
+I added a special case where AtomSort is a subset of NormalSort.
+Another thing I could try instead is to use a simpler compare function which is actually transitive.

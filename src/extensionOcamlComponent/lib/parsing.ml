@@ -274,7 +274,7 @@ let rewriteCompare (compare : 'sort -> 'sort -> bool) : ('sort internalSort -> '
   | NormalSort s1', NormalSort s2' -> compare s1' s2'
   | PostFixSort s1', PostFixSort s2' -> compare s1' s2'
   | AtomSort s1', AtomSort s2' -> compare s1' s2'
-  | AtomSort s1', NormalSort s2' -> compare s1' s2'
+  (* | AtomSort s1', NormalSort s2' -> compare s1' s2' *)
   | _ -> false
 
 exception Error of string

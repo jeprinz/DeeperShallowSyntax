@@ -1,1 +1,1 @@
-(fun x => fun y => x)
+(fun x => fun y => y 6) (fun x => x) 6

@@ -292,30 +292,30 @@ let rec processEq : (equation -> (equation list) option) unifyM =
   | _ -> None
 
 (* Note that the resulting substitution is NOT idempotent *)
-let rec unifyImpl : (bool -> equation list -> equation list -> equation list) unifyM =
+let rec unifyImpl : (bool -> ('metadata * equation) list -> ('metadata * equation) list -> ('metadata * equation) list) unifyM =
   fun env madeProgress eqs todo -> match eqs with
-    | (t1, t2) :: es -> (
+    | (md, (t1, t2)) :: es -> (
         let e = (reduce !env t1, reduce !env t2) in
         (* let e = (norm (metaSubst !env t1), norm (metaSubst !env t2)) in *)
         (* let (t1, t2) = e in *)
         (* print_endline ("Processing: " ^ show_term t1 ^ " = " ^ show_term t2); *)
         let newEqs = processEq env e in
         match newEqs with
-        | None -> unifyImpl env madeProgress es (e :: todo)
-        | Some eqs' -> unifyImpl env true (eqs' @ es) todo
+        | None -> unifyImpl env madeProgress es ((md, e) :: todo)
+        | Some eqs' -> unifyImpl env true (List.map (fun eq -> (md, eq)) eqs' @ es) todo
         )
     | [] -> if madeProgress then unifyImpl env false todo [] else todo
 
 let unify (eqs:equation list) : (sub * equation list) option =
   try
     let sub = ref IntMap.empty in
-    let finalEqs = unifyImpl sub false eqs [] in
-    Some (!sub, finalEqs)
+    let finalEqs = unifyImpl sub false (List.map (fun e -> ((), e)) eqs) [] in
+    Some (!sub, List.map snd finalEqs)
   with Failure(_t1, _t2) ->
     (* print_endline ("unify failed with: " ^ show_term t1 ^ " != " ^ show_term t2 ); *)
     None
 
-let unifyPartially (env : sub) (eqs : equation list) : (sub * equation list) option =
+let unifyPartially (env : sub) (eqs : ('metadata * equation) list) : (sub * ('metadata * equation) list) option =
   try
     let sub = ref env in
     let finalEqs = unifyImpl sub false eqs [] in

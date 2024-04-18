@@ -6,7 +6,7 @@ succ = \x gamma. x (fst gamma)
 
 pi = \x y. Pi x y
 arrow = \x y. Pi x (weaken y)
-type = Type
+type = \gamma. Type
 
 var = \x. x
 lambda = \t. \gamma a. t (gamma, a)
@@ -78,7 +78,7 @@ weaken = \t. \gamma. t (fst gamma)
  */
 {
     Name ?name1,
-    {Var ?ctx ?ty ?t ?name1}
+    {Var ?ctx ?ty1 ?t ?name1},
     -------------------------------- "_"
     Term ?ctx ?ty (var ?t)
 }
