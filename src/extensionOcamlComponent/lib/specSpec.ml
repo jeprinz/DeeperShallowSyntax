@@ -459,11 +459,11 @@ let spec : inductive = [
         NameKeyword "}";
         NameHole];
       premises = [
-          premiseList (var "ctx"); (* premises *)
+          premiseList (var "ctxFull"); (* premises *)
           regexSort (var "_") "-+"; (* ---------------- *)
           (* regexSort (var "name") "\".*\""; (* look *) *)
           nameComponentListSort; (* look *)
-          termSort (var "ctx"); (* conclusion *)
+          termSort (var "ctxFull"); (* conclusion *)
           topLevel (var "ctx") (var "ctxFull") (* rest of program *)
         ];
       hiddenPremises = [];
