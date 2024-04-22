@@ -9,8 +9,8 @@ type id = int
 let nextId : int ref = ref 0
 let freshId (_ : unit) : id =
   let next = !nextId in
-  nextId := !nextId + 1
-  ; next
+  nextId := !nextId + 1;
+  next
 
 type term = MetaVar of id | Lam of term | App of term * term | Var of int
   | Pair of term * term | Proj1 | Proj2
