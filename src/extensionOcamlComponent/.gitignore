@@ -5,6 +5,7 @@ _perf
 _coverage
 __pycache__
 *.install
+# ./extensionOcamlComponent/_build/default/bin/main.bc.js
 
 # vim swap files
 *.swp

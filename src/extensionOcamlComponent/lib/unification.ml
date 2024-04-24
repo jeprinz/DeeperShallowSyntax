@@ -258,6 +258,8 @@ let rec processEq : (equation -> (equation list) option) unifyM =
   | MetaVar x, t2 when IntMap.mem x !env -> processEq env (IntMap.find x !env, t2)
   | t1, MetaVar x when IntMap.mem x !env -> processEq env (t1, IntMap.find x !env)
   | MetaVar x , MetaVar x' when x = x' -> Some []
+  (* TODO: There is an issue here. This case should give an error if t has free variables.
+     For example, suppose we started with (\x. ?A) = (\x. x). This would simplify to ?A = x.*)
   | MetaVar x, t | t , MetaVar x -> env := IntMap.add x t !env ; Some []
   | t1, t2 when Option.is_some (neutralLike t1) && Option.is_some (neutralLike t2) ->
       Option.bind (neutralLike t1) (fun (x1, args1) ->

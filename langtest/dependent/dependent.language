@@ -24,23 +24,14 @@ weaken = \t. \gamma. t (fst gamma)
     IsId (\x . x)
 }
 {
-    {ThisShouldBeId ?delay},
-    {WouldUnifyThis ?x1 ?x2 ?x3 ?x4},
-    {WithThis (cons ?Gamma ?name ?T) (weaken ?T) zero ?name},
-    {IsId ?delay},
-    ?delay Var ?x1 ?x2 ?x3 ?x4 == ?delay Var (cons ?Gamma ?name ?T) (weaken ?T) zero ?name
-    ------------------- "test"
-    Var ?x1 ?x2 ?x3 ?x4
-}
-{
     ----------------------------------------------------- ""
-    XVar (cons ?Gamma ?name ?T) (weaken ?T) zero ?name
+    Var (cons ?Gamma ?name ?T) (weaken ?T) zero ?name
 }
 {
     Var ?Gamma ?T ?i ?name,
     ?name != ?othername
     -------------------------------------------------------------------- "_"
-    XVar (cons ?Gamma ?othername ?othertype) (weaken ?T) (succ ?i) ?name
+    Var (cons ?Gamma ?othername ?othertype) (weaken ?T) (succ ?i) ?name
 }
 {
     Name ?name,

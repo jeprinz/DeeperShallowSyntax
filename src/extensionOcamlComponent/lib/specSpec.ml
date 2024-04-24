@@ -205,7 +205,7 @@ let spec : inductive = [
     {
       name = "CommentListCons";
       look = [NameHole; NameHole];
-      premises = [regexSort (var "comment") "[^(\*/)]*"; commentListSort];
+      premises = [regexSort (var "comment") {|[^(\*/)]*|}; commentListSort];
       hiddenPremises = [];
       conclusion = commentListSort;
       equalities = [];

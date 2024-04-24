@@ -1,10 +1,32 @@
+/*
+
+This file demonstrates how unification not being completely implemented is
+causing issues with checking the dependent language.
+
+There is a leftover constraint that should be able to be resolved.
+
+In general, any equation of the form:
+?X t1 t2 ... tn = rhs
+
+Where each ti is of the form:
+t ::= x | fst t | snd t
+
+AND any variable which appears multiple times in the ti's isn't free in rhs,
+
+Let xi be the variable at ti.
+Then the equation can be eliminated and result in the substitution:
+
+
+*/
+
+weaken = \t. \gamma. t (fst gamma)
 {
     ---------------- ""
     IsId (\x . x)
 }
 {
     {IsId ?delay},
-    {ThisShouldBeId ?delay},
+    ?delay (weaken ?fresh1) == ?delay (\dummy. Type)
     ------------------- "test"
     Top
 }

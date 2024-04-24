@@ -5,6 +5,6 @@
    -warn-error "-unused-var-strict")
   )
  (libraries js_of_ocaml)
- (modules parsing unification typeSystem typecheck specSpec util)
+ (modules parsing unification typeSystem typecheck specSpec util unification2)
  (preprocess (pps ppx_import ppx_deriving.show ppx_deriving.ord js_of_ocaml-ppx))
  (name extensionOcamlComponent))
