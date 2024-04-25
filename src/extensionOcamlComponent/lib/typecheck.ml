@@ -1,6 +1,7 @@
 open Unification
 open TypeSystem
 open Parsing
+open Util
 
 (* An implementation of typechecking generically for any language *)
 

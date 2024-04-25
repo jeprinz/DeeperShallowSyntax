@@ -2,9 +2,6 @@
 open Str
 open Util
 
-(* Throughout this codebase, we work with generic tree *)
-type 'label tree = Node of 'label * ('label tree list)
-
 (*Position within a text file*)
 type position = {
   lineNumber : int;
@@ -276,8 +273,6 @@ let rewriteCompare (compare : 'sort -> 'sort -> bool) : ('sort internalSort -> '
   | AtomSort s1', AtomSort s2' -> compare s1' s2'
   (* | AtomSort s1', NormalSort s2' -> compare s1' s2' *)
   | _ -> false
-
-exception Error of string
 
 (*And these functions convert the resulting transformed ast back into an ast for the original grammar*)
 let rec convertBack (t : 'label internalLabel ast) : 'label ast =
