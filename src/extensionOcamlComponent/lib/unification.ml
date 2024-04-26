@@ -166,7 +166,7 @@ let rec reduceImpl (env : sub) (t : term) : term option =
         match reduceImpl env value with
         | None -> Some value
         | Some t -> Some t)
-  | Lam (App (t, Var 0)) -> Some t (*function eta*)
+  | Lam (App (t, Var 0)) when var_not_occurs env 0 t -> Some (subst 0 (Const "Dummy-Eta-Rule") t) (*function eta*)
   | Pair (App (Proj1, t1), App (Proj2, t2)) when t1 = t2 -> Some t1 (*pair eta*) (* TODO: maybe this only needs to happen if t1 and t2 are variables?*)
   | MetaData (_, t) -> Some t
   | App (Lam t1, t2) -> Some (subst 0 t2 t1)
@@ -221,7 +221,7 @@ let rec reducedAreDefinitelyUnequal (t1 : term) (t2 : term) : bool =
 (*This implementation is not fast*)
 let rec norm (t : term) : term =
   match t with
-  | Lam (App (t, Var 0)) -> norm t (*function eta*)
+  | Lam (App (t, Var 0)) when var_not_occurs (IntMap.empty) 0 t -> norm (subst 0 (Const "Dummy-Eta-Rule") t) (*function eta*)
   | Pair (App (Proj1, t1), App (Proj2, t2)) when t1 = t2 -> norm t1 (*pair eta*)
   | MetaData (_, t) -> t
   | App (Lam t1, t2) -> norm (subst 0 t2 t1)
@@ -246,9 +246,7 @@ exception Failure of equation
 
 let rec processEq : (equation -> (equation list) option) unifyM =
   fun env (t1Pre, t2Pre) ->
-  (* (match eq with
-  | x, y -> print_endline ("In unify, processing: " ^ show_term x ^ " = " ^ show_term y))
-  ; *)
+  print_endline ("In processEq, processing: " ^ show_term (metaSubst !env t1Pre) ^ " = " ^ show_term (metaSubst !env t2Pre));
   let eq = (norm (metaSubst !env t1Pre), norm (metaSubst !env t2Pre)) in
   let ifFail = Failure eq in
   match eq with
@@ -281,9 +279,10 @@ let rec processEq : (equation -> (equation list) option) unifyM =
   | Proj1, Proj1 | Proj2, Proj2 -> Some []
   | Pair (a1, b1), Pair (a2, b2) -> Some [a1,a2; b1,b2]
   | App (t1, Var n), t2 when var_not_occurs !env n t1 -> (*e.g. if A x = t, then A = \x.t*)
-    Some [t1, subst n (Var 0) (Lam t2)]
-  | t2, App (t1, Var n) when var_not_occurs !env n t1 ->
-    Some [subst n (Var 0) (Lam t2), t1]
+    Some [t1, Lam (lift (n + 1) (subst (n + 1) (Var 0) (lift 0 t2)))] (*Ah yes I love debruin indices *)
+  | t2, App (t1, Var n) when var_not_occurs !env n t1 -> (*e.g. if A x = t, then A = \x.t*)
+    Some [t1, Lam (lift (n + 1) (subst (n + 1) (Var 0) (lift 0 t2)))]
+  (* These cases are messed up *)
   | App (t1, Pair (Var n, Var m)), t2 when n <> m && var_not_occurs !env n t1 && var_not_occurs !env m t1 ->
     Some [t1, subst m (App (Proj2, Var 0)) (subst n (App(Proj1, Var 0)) (Lam t2))]
   | t2, App (t1, Pair (Var n, Var m)) when n <> m && var_not_occurs !env n t1 && var_not_occurs !env m t1 ->
@@ -291,6 +290,9 @@ let rec processEq : (equation -> (equation list) option) unifyM =
   (* TODO: Think about these cases more carefully! *)
   | t1, App (Proj1, t2) | App (Proj1, t2), t1 -> Some [t2, Pair(t1, MetaVar (freshId ()))]
   | t1, App (Proj2, t2) | App (Proj2, t2), t1 -> Some [t2, Pair(MetaVar (freshId ()), t1)]
+  (* These (and other) cases should be generalized, but for now I'll write them as special cases: *)
+  (* | App(t1, App(Proj1, Var n)), t2 | t2, App(t1, App(Proj1, Var n)) when var_not_occurs !env n t1 ->
+    Some [t1, subst n ()] *)
   | t1, t2 when reducedAreDefinitelyUnequal t1 t2 -> raise ifFail
   | t1, t2 when norm (metaSubst !env t1) = norm (metaSubst !env t2) -> Some []
   | _ -> None
@@ -299,6 +301,7 @@ let rec processEq : (equation -> (equation list) option) unifyM =
 let rec unifyImpl : (bool -> ('metadata * equation) list -> ('metadata * equation) list -> ('metadata * equation) list) unifyM =
   fun env madeProgress eqs todo -> match eqs with
     | (md, (t1, t2)) :: es -> (
+        (* print_endline ("In unifyImpl, eq processed is " ^ show_term t1 ^ " = " ^ show_term t2); *)
         let e = (reduce !env t1, reduce !env t2) in
         (* let e = (norm (metaSubst !env t1), norm (metaSubst !env t2)) in *)
         (* let (t1, t2) = e in *)

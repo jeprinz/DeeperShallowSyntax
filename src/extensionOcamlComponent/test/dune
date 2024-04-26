@@ -5,7 +5,7 @@
    -warn-error "-unused-constructor" -warn-error "-unused-extension" -warn-error "-unused-type-declaration"
    -warn-error "-unused-var-strict" -warn-error "-nonreturning-statement")
   )
- (modules test_extensionOcamlComponent testFullSystem)
+ (modules testFullSystem test_extensionOcamlComponent)
  (libraries str extensionOcamlComponent)
  ; (modes js)
  )

@@ -30,3 +30,15 @@ weaken = \t. \gamma. t (fst gamma)
     ------------------- "test"
     Top
 }
+
+/*
+Also, I'm testing if there is a bug with how I implented cases like
+?X x = x
+*/
+
+{
+    {Result ?X},
+    \x y. ?X x y == \x y. x
+    ------------------------------------- "test2"
+    Bla
+}
