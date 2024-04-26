@@ -55,13 +55,14 @@ let rec termAstToTerm (mvEnv : id StringMap.t ref) (globalMvNames : id StringMap
   match t with
   | Node((AstNode "Lambda", _, _), [Node((AstNode "VarListNil", _, _), []); body]) -> termAstToTerm mvEnv globalMvNames localEnv body
   | Node((AstNode "Lambda", p1, p2), [Node((AstNode "VarListCons", _, _), [nameRegex; rest]); body]) ->
-    Lam  (termAstToTerm mvEnv globalMvNames (regexAstToString nameRegex :: localEnv) (Node((AstNode "Lambda", p1, p2), [rest; body])))
+    let varName = regexAstToString nameRegex in
+    Lam  (Named varName, termAstToTerm mvEnv globalMvNames (varName :: localEnv) (Node((AstNode "Lambda", p1, p2), [rest; body])))
   | Node((AstNode "Parens", _, _), [t]) -> termAstToTerm mvEnv globalMvNames localEnv t
   | Node((AstNode "Application", _, _), [t1; t2]) -> App (termAstToTerm mvEnv globalMvNames localEnv t1, termAstToTerm mvEnv globalMvNames localEnv t2)
   | Node((AstNode "Var", _, _), [nameRegex]) ->
       let name = (regexAstToString nameRegex) in
       (match (Util.find_index localEnv name) with
-      | Some n -> Var n
+      | Some _n -> Var (Named name)
       | None -> MetaVar (getMV globalMvNames name))
   | Node((AstNode "Const", _, _), [nameRegex]) -> Const (regexAstToString nameRegex)
   | Node((AstNode "Pair", _, _), [t1; t2]) -> Pair (termAstToTerm mvEnv globalMvNames localEnv t1, termAstToTerm mvEnv globalMvNames localEnv t2)

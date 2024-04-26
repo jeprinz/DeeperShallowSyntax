@@ -40,7 +40,7 @@ let testSpecSpec (_ : unit) =
     {|
 {
     {Result ?X},
-    \x y z. A (?X x y z) B == \x y z. A x B
+    \x y z w1 w2. A (?X z y (w1, w2) x) B == \x y z w1 w2. A w2 B
     ------------------------------------- "test2"
     Bla
 }

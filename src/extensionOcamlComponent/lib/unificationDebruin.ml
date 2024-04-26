@@ -12,20 +12,13 @@ let freshId (_ : unit) : id =
   nextId := !nextId + 1
   ; next
 
-type varId = Named of string | Generated of int
-let show_varId (i : varId) = match i with
-  | Named s -> s
-  | Generated x -> "_x" ^ string_of_int x
-
-type term = MetaVar of id | Lam of varId * term | App of term * term | Var of varId
+type term = MetaVar of id | Lam of term | App of term * term | Var of int
   | Pair of term * term | Proj1 | Proj2
   | Const of string | MetaData of string * term
+  (* [@@deriving show] *)
 
 let freshMetaVar (_ : unit) : term = (* TODO: use this later on*)
   MetaVar (freshId ())
-
-let freshVarId (_ : unit) : varId =
-  Generated (freshId ())
 
 type valueTag = TLam | TVar | TPair | TProj1 | TProj2 | TConst
 
@@ -41,24 +34,26 @@ let getValueTag (t : term) : valueTag option =
 
 let rec show_term_impl (lamParens : bool) (appParens : bool) (t : term) : string =
   match t with
-  | Lam(name, body) -> let inside = "λ " ^ show_varId name ^ ". " ^ show_term_impl false false body in
+  | Lam body -> let inside = "λ " ^ show_term_impl false false body in
     if lamParens then "(" ^ inside ^ ")" else inside
   | App (t1, t2) ->
       let inside = show_term_impl true false t1 ^ " " ^ show_term_impl true true t2 in
       if appParens then "(" ^ inside ^ ")" else inside
   | Pair (t1, t2) -> "(" ^ show_term_impl false false t1 ^ "," ^ show_term_impl false false t2 ^ ")"
-  | Var name -> show_varId name
-  | Proj1 -> "fst"
-  | Proj2 -> "snd"
+  | Var n -> show_id n
+  | Proj1 -> "proj1"
+  | Proj2 -> "proj2"
   | Const s -> s
   | MetaData (d, t) -> "MD[" ^ d ^ "][" ^ show_term_impl false false t ^ "]"
   | MetaVar x -> "M" ^ show_id x
 
 let show_term = show_term_impl false false
+(* let pp_term : Formatter.formatter -> term -> unit *)
+
 
 let children (t : term) : term list =
   match t with
-  | Lam (_name, t) -> [t]
+  | Lam t -> [t]
   | App (t1, t2) -> [t1; t2]
   | Pair (t1, t2) -> [t1; t2]
   | MetaData (_, t) -> [t]
@@ -75,7 +70,7 @@ let show_sub (s : sub) : string =
 let rec metaSubst (menv : sub) (t : term) : term =
   let recur = metaSubst menv in
   match t with
-  | Lam (name, body) -> Lam (name, recur body)
+  | Lam body -> Lam (recur body)
   | App (t1, t2) -> App (recur t1, recur t2)
   | Pair (t1, t2) -> Pair (recur t1, recur t2)
   | Var _ | Proj1 | Proj2 | Const _ -> t 
@@ -93,7 +88,7 @@ let rec not_occurs (env : sub) (x : id) (t : term) : bool =
       | None -> not (x = y))
     | _ -> List.for_all (not_occurs env x) (children t)
 
-let rec var_not_occurs (env : sub) (x : varId) (t : term) : bool =
+let rec var_not_occurs (env : sub) (x : id) (t : term) : bool =
     match t with
     | Var y -> not (x = y)
     | MetaVar y -> (match IntMap.find_opt y env with
@@ -145,11 +140,20 @@ let rec neutralLike (t : term) : (term * term list) option =
     Ah - terms should be "pseudoneutral - " that is, a variable (or metavariable) applied to arguments,
     but the arguments don't themselves need to be normal.*)
 
-let rec subst (name : varId) (t' : term) (t : term) : term =
-  let recur = subst name t' in
+let rec lift (k : int) (t : term) : term =
   match t with
-  | Var x -> if x = name then t' else t
-  | Lam (name', body) -> if name' = name then t else Lam (name', recur body)
+  | Var i -> if i < k then Var i else Var (i + 1)
+  | Lam t -> Lam (lift (k + 1) t)
+  | App (t1, t2) -> App (lift k t1, lift k t2)
+  | Pair (t1, t2) -> Pair (lift k t1, lift k t2)
+  | Proj1 | Proj2 | Const _ | MetaVar _ -> t
+  | MetaData (d, t) -> MetaData(d, lift k t)
+
+let rec subst (index : int) (t' : term) (t : term) : term =
+  let recur = subst index t' in
+  match t with
+  | Var i -> if index < i then Var (i - 1) else if i = index then t' else Var i
+  | Lam body -> Lam (subst (index + 1) (lift 0 t') body)
   | App (t1, t2) -> App (recur t1, recur t2)
   | Pair (t1, t2) -> Pair (recur t1, recur t2)
   | Proj1 | Proj2 | Const _ | MetaVar _ -> t
@@ -162,10 +166,10 @@ let rec reduceImpl (env : sub) (t : term) : term option =
         match reduceImpl env value with
         | None -> Some value
         | Some t -> Some t)
-  | Lam (x1, App (t, Var x2)) when x1 = x2 && var_not_occurs env x2 t -> Some t (*function eta*)
+  | Lam (App (t, Var 0)) when var_not_occurs env 0 t -> Some (subst 0 (Const "Dummy-Eta-Rule") t) (*function eta*)
   | Pair (App (Proj1, t1), App (Proj2, t2)) when t1 = t2 -> Some t1 (*pair eta*) (* TODO: maybe this only needs to happen if t1 and t2 are variables?*)
   | MetaData (_, t) -> Some t
-  | App (Lam (x, t1), t2) -> Some (subst x t2 t1)
+  | App (Lam t1, t2) -> Some (subst 0 t2 t1)
   | App (Proj1, Pair (t, _)) -> Some t
   | App (Proj2, Pair (_, t)) -> Some t
   | App (Proj1, t) -> (* TODO: there must be a cleaner way to write these cases*)
@@ -203,8 +207,7 @@ let rec reducedAreDefinitelyUnequal (t1 : term) (t2 : term) : bool =
   | App(Proj1, t1'), t2' | t2', App(Proj1, t1') -> reducedAreDefinitelyUnequal t1' t2'
   | App(Proj2, t1'),t2' | t2', App(Proj2, t1') -> reducedAreDefinitelyUnequal t1' t2'
   | App(t1', _), t2' | t2', App(t1', _) -> reducedAreDefinitelyUnequal t1' t2'
-  (* | Lam(x, t1'), t2' | t2', Lam(x, t1') -> reducedAreDefinitelyUnequal t1' t2' *) (* What was this case supposed to be? *)
-  | Lam(x, t1), Lam(y, t2) -> reducedAreDefinitelyUnequal t1 (subst y (Var x) t2)
+  | Lam(t1'), t2' | t2', Lam(t1') -> reducedAreDefinitelyUnequal t1' t2' (* TODO: is this right? *)
   | Pair(a1, b1), Pair(a2, b2) -> reducedAreDefinitelyUnequal a1 a2 || reducedAreDefinitelyUnequal b1 b2
   | MetaVar _, _ | _, MetaVar _ -> false
   | Var n1, Var n2 -> n1 <> n2
@@ -218,10 +221,10 @@ let rec reducedAreDefinitelyUnequal (t1 : term) (t2 : term) : bool =
 (*This implementation is not fast*)
 let rec norm (t : term) : term =
   match t with
-  | Lam (x1, App (t, Var x2)) when x1 = x2 && var_not_occurs (IntMap.empty) x2 t -> t (*function eta*)
+  | Lam (App (t, Var 0)) when var_not_occurs (IntMap.empty) 0 t -> norm (subst 0 (Const "Dummy-Eta-Rule") t) (*function eta*)
   | Pair (App (Proj1, t1), App (Proj2, t2)) when t1 = t2 -> norm t1 (*pair eta*)
   | MetaData (_, t) -> t
-  | App (Lam (x, t1), t2) -> norm (subst x t2 t1)
+  | App (Lam t1, t2) -> norm (subst 0 t2 t1)
   | App (Proj1, Pair (t, _)) -> norm t
   | App (Proj2, Pair (_, t)) -> norm t
   | App (t1, t2) ->
@@ -229,7 +232,7 @@ let rec norm (t : term) : term =
       let t2' = norm t2 in
       let res = App (t1', t2') in
       if t1' = t1 && t2 = t2' then res else norm res
-  | Lam (x, t) -> Lam (x, norm t)
+  | Lam t -> Lam (norm t)
   | Pair (t1, t2) -> Pair (norm t1, norm t2)
   | _ -> t
 
@@ -247,7 +250,7 @@ let rec processEq : (equation -> (equation list) option) unifyM =
   let eq = (norm (metaSubst !env t1Pre), norm (metaSubst !env t2Pre)) in
   let ifFail = Failure eq in
   match eq with
-  | Lam (x, t1), Lam (y, t2) -> Some [(t1, subst y (Var x) t2)]
+  | Lam t1, Lam t2 -> Some [(t1, t2)]
   | Var x1, Var x2 -> if x1 = x2 then Some [] else raise ifFail
   | Const s1, Const s2 -> if s1 = s2 then Some [] else raise ifFail
   | MetaVar x, t2 when IntMap.mem x !env -> processEq env (IntMap.find x !env, t2)
@@ -275,26 +278,21 @@ let rec processEq : (equation -> (equation list) option) unifyM =
     | Proj1, Pair(_, _) | Pair(_, _), Proj1 | Proj2, Pair(_, _) | Pair(_, _), Proj2  -> raise ifFail *)
   | Proj1, Proj1 | Proj2, Proj2 -> Some []
   | Pair (a1, b1), Pair (a2, b2) -> Some [a1,a2; b1,b2]
-  | App (t1, Var x), t2 when var_not_occurs !env x t1 -> (*e.g. if A x = t, then A = \x.t*)
-    Some [t1, Lam (x, t2)]
-  | t2, App (t1, Var x) when var_not_occurs !env x t1 -> (*e.g. if A x = t, then A = \x.t*)
-    Some [t1, Lam (x, t2)]
-  | App (t1, Pair (Var x, Var y)), t2 when x <> y && var_not_occurs !env x t1 && var_not_occurs !env y t1 ->
-    let z = freshVarId () (*fresh variable*) in
-    Some [t1, Lam(z, subst y (App (Proj2, Var z)) (subst x (App(Proj1, Var z)) t2))]
-  | t2, App (t1, Pair (Var x, Var y)) when x <> y && var_not_occurs !env x t1 && var_not_occurs !env y t1 ->
-    let z = freshVarId () (*fresh variable*) in
-    Some [t1, Lam(z, subst y (App (Proj2, Var z)) (subst x (App(Proj1, Var z)) t2))]
+  | App (t1, Var n), t2 when var_not_occurs !env n t1 -> (*e.g. if A x = t, then A = \x.t*)
+    Some [t1, Lam (lift (n + 1) (subst (n + 1) (Var 0) (lift 0 t2)))] (*Ah yes I love debruin indices *)
+  | t2, App (t1, Var n) when var_not_occurs !env n t1 -> (*e.g. if A x = t, then A = \x.t*)
+    Some [t1, Lam (lift (n + 1) (subst (n + 1) (Var 0) (lift 0 t2)))]
+  (* These cases are messed up *)
+  | App (t1, Pair (Var n, Var m)), t2 when n <> m && var_not_occurs !env n t1 && var_not_occurs !env m t1 ->
+    Some [t1, subst m (App (Proj2, Var 0)) (subst n (App(Proj1, Var 0)) (Lam t2))]
+  | t2, App (t1, Pair (Var n, Var m)) when n <> m && var_not_occurs !env n t1 && var_not_occurs !env m t1 ->
+    Some [subst m (App (Proj2, Var 0)) (subst n (App(Proj1, Var 0)) (Lam t2)), t1]
   (* TODO: Think about these cases more carefully! *)
   | t1, App (Proj1, t2) | App (Proj1, t2), t1 -> Some [t2, Pair(t1, MetaVar (freshId ()))]
   | t1, App (Proj2, t2) | App (Proj2, t2), t1 -> Some [t2, Pair(MetaVar (freshId ()), t1)]
   (* These (and other) cases should be generalized, but for now I'll write them as special cases: *)
-  | App(t1, App(Proj1, Var x)), t2 when var_not_occurs !env x t1 ->
-    let y = freshVarId () in
-    Some [t1, Lam(y, subst x (Pair(Var y, App(Proj2, Var x))) t2)]
-  | t2, App(t1, App(Proj1, Var x)) when var_not_occurs !env x t1 ->
-    let y = freshVarId () in
-    Some [t1, Lam(y, subst x (Pair(Var y, App(Proj2, Var x))) t2)]
+  (* | App(t1, App(Proj1, Var n)), t2 | t2, App(t1, App(Proj1, Var n)) when var_not_occurs !env n t1 ->
+    Some [t1, subst n ()] *)
   | t1, t2 when reducedAreDefinitelyUnequal t1 t2 -> raise ifFail
   | t1, t2 when norm (metaSubst !env t1) = norm (metaSubst !env t2) -> Some []
   | _ -> None
