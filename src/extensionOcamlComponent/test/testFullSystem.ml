@@ -88,19 +88,19 @@ z ?= (((M27486,snd ((z,snd gamma),snd (fst (fst z))))),M27487),M27488)
   (* The specification for the program *)
   let langSpec =
     {|
-cons = \gamma name ty. (gamma, (name, ty))
-weaken = \t. \gamma. t (fst gamma)
-zero = \x. snd x
-lhs =
-    \gamma2.
-    Var
-      (?innerCtx,("acceptsA",\ gamma. Pi (snd (fst gamma)) (\ a. Type)))
-      (\ x. Pi (?M70632 ((x,snd gamma2),?M71112 (fst x))) (\ a. ?X ((x,snd gamma2),a)))
-      ?term
-      "acceptsA"
-rhs = 
-    \gamma2.
-    Var (cons ?Gamma ?name ?T) (weaken ?T) zero ?name
+    cons = \gamma name ty. (gamma, (name, ty))
+    weaken = \t. \gamma. t (fst gamma)
+    zero = \x. snd x
+    lhs =
+        \gamma2.
+        Var
+          (?innerCtx,("acceptsA",\ gamma. Pi (snd (fst gamma)) (\ a. Type)))
+          (\ x. Pi (?M70632 ((x,snd gamma2),?M71112 (fst x))) (\ a. ?X ((x,snd gamma2),a)))
+          ?term
+          "acceptsA"
+    rhs = 
+        \gamma2.
+        Var (cons ?Gamma ?name ?T) (weaken ?T) zero ?name
 {
     {Result ?X},
     lhs == rhs

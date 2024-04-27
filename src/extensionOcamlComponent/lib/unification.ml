@@ -329,7 +329,9 @@ let rec processEq : (equation -> (equation list) option) unifyM =
     when a = a' && b = b' && a <> b -> Some [(MetaVar x, MetaVar y)]
   | Proj1, Proj1 | Proj2, Proj2 -> Some []
   | Pair (a1, b1), Pair (a2, b2) -> Some [a1,a2; b1,b2]
-  (*| Pair(a1, a2), ((Var _) as t) | ((Var _) as t), Pair(a1, a2) -> Some[App(Proj1, t), a1; App(Proj2, t), a2] (*Is this right?*) *)
+  (* THis the case I need, but seems to be causing nontermination *)
+  (*| Pair(a1, a2), t | t, Pair(a1, a2) ->
+    Some[App(Proj1, t), a1; App(Proj2, t), a2] (*Is this right?*)*)
   (* These two cases are redundant with the more general case below, but they preserve readable variable names better. *)
   | App (t1, Var x), t2 when t1 <> Proj1 && t1 <> Proj2 && var_not_occurs !env x t1 -> (*e.g. if A x = t, then A = \x.t*)
     Some [t1, Lam (x, t2)]
@@ -348,8 +350,10 @@ let rec processEq : (equation -> (equation list) option) unifyM =
     let x = freshVarId "x" () in
     Some [a, Lam (x, substNeutral pat (Var x) t)]
   (* TODO: Think about these cases more carefully! *)
+  (* (* THese cases cause an infinite loop with the above case that splits pairs! *)
   | t1, App (Proj1, t2) | App (Proj1, t2), t1 -> Some [t2, Pair(t1, MetaVar (freshId ()))]
   | t1, App (Proj2, t2) | App (Proj2, t2), t1 -> Some [t2, Pair(MetaVar (freshId ()), t1)]
+  *)
   (* I wouldn't need these silly cases if Proj1 and Proj2 took an argument *)
   | Proj1, Lam(x, App(Proj1, Var x')) | Lam(x, App(Proj1, Var x')), Proj1
   | Proj2, Lam(x, App(Proj2, Var x')) | Lam(x, App(Proj2, Var x')), Proj2
