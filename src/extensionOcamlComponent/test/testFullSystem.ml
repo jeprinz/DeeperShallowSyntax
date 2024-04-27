@@ -38,6 +38,14 @@ let testSpecSpec (_ : unit) =
   (*
 
     \x y z . A (?X (fst x)) B == \x y z . A (Bla (Clonk (snd (fst x)))) B
+
+    Var (((M83152,(A,λ gamma. Type)),(B,λ gamma. Type)),(acceptsA,λ gamma. Pi (snd (fst gamma)) (λ a. Type)))
+      (λ _x80787. Pi (snd (fst _x80787)) (λ a. M79523 ((_x80787,snd gamma),a)))
+      M80777 acceptsA
+
+    Zero case:
+    Var (cons ?Gamma ?name ?T) (weaken ?T) zero ?name
+
   **)
   
   (* The specification for the program *)
@@ -45,9 +53,9 @@ let testSpecSpec (_ : unit) =
     {|
 {
     {Result ?X},
-    Thing (Var snd)
+    Thing (\ gamma. Pi (snd (fst gamma)) (\ a. Type))
     ==
-    Thing (Var (\y. ?X (fst y)))
+    Thing (\ x. Pi (snd (fst x)) (\ a. ?X ((x,snd gamma),a)))
     ------------------------------------- "test2"
     Bla
 }

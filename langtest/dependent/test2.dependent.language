@@ -1,4 +1,4 @@
 fun A : Type => fun B : Type =>
     fun acceptsA : A -> Type =>
     fun x : ((f : Type -> (Type -> Type)) -> f A B) =>
-        Probe (x (fun a => fun b => a))
+        acceptsA (x (fun a => fun b => a))

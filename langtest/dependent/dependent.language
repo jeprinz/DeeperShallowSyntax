@@ -1,7 +1,7 @@
 nil = Nil
 cons = \gamma name ty. (gamma, (name, ty))
 
-zero = snd
+zero = \x. snd x
 succ = \x gamma. x (fst gamma)
 
 pi = \x y. \gamma. Pi (x gamma) (\a. y (gamma, a))

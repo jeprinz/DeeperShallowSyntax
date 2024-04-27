@@ -1,4 +1,5 @@
 open Stdlib
+open Util
 
 (* Higher order unification! *)
 
@@ -149,7 +150,9 @@ let rec subst (name : varId) (t' : term) (t : term) : term =
   let recur = subst name t' in
   match t with
   | Var x -> if x = name then t' else t
-  | Lam (name', body) -> if name' = name then t else Lam (name', recur body)
+  | Lam (name', body) ->
+    if not (var_not_occurs IntMap.empty name' t') then raise (Error "TODO: implement captured variable thing in substitution") else
+    if name' = name then t else Lam (name', recur body)
   | App (t1, t2) -> App (recur t1, recur t2)
   | Pair (t1, t2) -> Pair (recur t1, recur t2)
   | Proj1 | Proj2 | Const _ | MetaVar _ -> t
@@ -176,7 +179,7 @@ let rec substNeutral (u : pattern) (t' : term) (t : term) : term =
   | Var x -> subst x t' t
   | Pair(p1, p2) -> substNeutral p1 (App(Proj1, t')) (substNeutral p2 (App(Proj2, t')) t)
   | Proj1 p -> substNeutral p (Pair(t', App(Proj2, term_of_pattern p))) t
-  | Proj2 p -> substNeutral p (Pair(App(Proj2, term_of_pattern p), t')) t
+  | Proj2 p -> substNeutral p (Pair(App(Proj1, term_of_pattern p), t')) t
 
 (*
 For (x, y), need to check that both x and y don't occur.  
@@ -204,7 +207,7 @@ let rec reduceImpl (env : sub) (t : term) : term option =
         match reduceImpl env value with
         | None -> Some value
         | Some t -> Some t)
-  | Lam (x1, App (t, Var x2)) when x1 = x2 && var_not_occurs env x2 t -> Some t (*function eta*)
+  | Lam (x1, App (t, Var x2)) when t <> Proj1 && t <> Proj2 &&  x1 = x2 && var_not_occurs env x2 t -> Some t (*function eta*)
   | Pair (App (Proj1, t1), App (Proj2, t2)) when t1 = t2 -> Some t1 (*pair eta*) (* TODO: maybe this only needs to happen if t1 and t2 are variables?*)
   | MetaData (_, t) -> Some t
   | App (Lam (x, t1), t2) -> Some (subst x t2 t1)
@@ -260,7 +263,7 @@ let rec reducedAreDefinitelyUnequal (t1 : term) (t2 : term) : bool =
 (*This implementation is not fast*)
 let rec norm (t : term) : term =
   match t with
-  | Lam (x1, App (t, Var x2)) when x1 = x2 && var_not_occurs (IntMap.empty) x2 t -> norm t (*function eta*)
+  | Lam (x1, App (t, Var x2)) when t <> Proj1 && t <> Proj2 &&  x1 = x2 && var_not_occurs (IntMap.empty) x2 t -> norm t (*function eta*)
   | Pair (App (Proj1, t1), App (Proj2, t2)) when t1 = t2 -> norm t1 (*pair eta*)
   | MetaData (_, t) -> t
   | App (Lam (x, t1), t2) -> norm (subst x t2 t1)
@@ -292,6 +295,7 @@ let rec processEq : (equation -> (equation list) option) unifyM =
   let eq = (norm (metaSubst !env t1Pre), norm (metaSubst !env t2Pre)) in
   let ifFail = Failure eq in
   match eq with
+  | t1, t2 when t1 = t2 (*norm (metaSubst !env t1) = norm (metaSubst !env t2)*) -> Some []
   | Lam (x, t1), Lam (y, t2) -> Some [(t1, subst y (Var x) t2)]
   | Var x1, Var x2 -> if x1 = x2 then Some [] else raise ifFail
   | Const s1, Const s2 -> if s1 = s2 then Some [] else raise ifFail
@@ -321,9 +325,9 @@ let rec processEq : (equation -> (equation list) option) unifyM =
   | Proj1, Proj1 | Proj2, Proj2 -> Some []
   | Pair (a1, b1), Pair (a2, b2) -> Some [a1,a2; b1,b2]
   (* These two cases are redundant with the more general case below, but they preserve readable variable names better. *)
-  | App (t1, Var x), t2 when var_not_occurs !env x t1 -> (*e.g. if A x = t, then A = \x.t*)
+  | App (t1, Var x), t2 when t1 <> Proj1 && t1 <> Proj2 && var_not_occurs !env x t1 -> (*e.g. if A x = t, then A = \x.t*)
     Some [t1, Lam (x, t2)]
-  | t2, App (t1, Var x) when var_not_occurs !env x t1 -> (*e.g. if A x = t, then A = \x.t*)
+  | t2, App (t1, Var x) when t1 <> Proj1 && t1 <> Proj2 && var_not_occurs !env x t1 -> (*e.g. if A x = t, then A = \x.t*)
     Some [t1, Lam (x, t2)]
   (*e.g. if A x = t, then A = \x.t*)
   (* I have a != Proj1 or Proj2, because really Proj1 and Proj2 should take their argument as a parameter directly and shouldn't show up here. The issue is cases like "snd x = ..." will trigger this case.*)
@@ -340,8 +344,11 @@ let rec processEq : (equation -> (equation list) option) unifyM =
   (* TODO: Think about these cases more carefully! *)
   | t1, App (Proj1, t2) | App (Proj1, t2), t1 -> Some [t2, Pair(t1, MetaVar (freshId ()))]
   | t1, App (Proj2, t2) | App (Proj2, t2), t1 -> Some [t2, Pair(MetaVar (freshId ()), t1)]
+  (* I wouldn't need these silly cases if Proj1 and Proj2 took an argument *)
+  | Proj1, Lam(x, App(Proj1, Var x')) | Lam(x, App(Proj1, Var x')), Proj1
+  | Proj2, Lam(x, App(Proj2, Var x')) | Lam(x, App(Proj2, Var x')), Proj2
+    when x = x' -> Some []
   | t1, t2 when reducedAreDefinitelyUnequal t1 t2 -> raise ifFail
-  | t1, t2 when norm (metaSubst !env t1) = norm (metaSubst !env t2) -> Some []
   | _ -> None
 
 (* Note that the resulting substitution is NOT idempotent *)
