@@ -13,10 +13,14 @@ let freshId (_ : unit) : id =
   nextId := !nextId + 1
   ; next
 
-type varId = Named of string | Generated of int
+type varId = Named of string | Generated of string * int
 let show_varId (i : varId) = match i with
   | Named s -> s
-  | Generated x -> "_x" ^ string_of_int x
+  | Generated (name, x) -> "_" ^ name ^ string_of_int x
+let varIdName (i : varId) : string =
+  match i with
+  | Named s -> s
+  | Generated (name, _) -> name
 
 type term = MetaVar of id | Lam of varId * term | App of term * term | Var of varId
   | Pair of term * term | Proj1 | Proj2
@@ -25,8 +29,8 @@ type term = MetaVar of id | Lam of varId * term | App of term * term | Var of va
 let freshMetaVar (_ : unit) : term = (* TODO: use this later on*)
   MetaVar (freshId ())
 
-let freshVarId (_ : unit) : varId =
-  Generated (freshId ())
+let freshVarId (name : string) (_ : unit) : varId =
+  Generated (name, freshId ())
 
 type valueTag = TLam | TVar | TPair | TProj1 | TProj2 | TConst
 
@@ -151,8 +155,13 @@ let rec subst (name : varId) (t' : term) (t : term) : term =
   match t with
   | Var x -> if x = name then t' else t
   | Lam (name', body) ->
-    if not (var_not_occurs IntMap.empty name' t') then raise (Error "TODO: implement captured variable thing in substitution") else
-    if name' = name then t else Lam (name', recur body)
+    if name' = name then t else
+    if not (var_not_occurs IntMap.empty name' t') (* capture avoiding substitution *)
+      then
+        let freshVar = freshVarId (varIdName name') () in
+        let body' = subst name' (Var freshVar) body in
+        Lam(freshVar, recur body')
+      else Lam (name', recur body)
   | App (t1, t2) -> App (recur t1, recur t2)
   | Pair (t1, t2) -> Pair (recur t1, recur t2)
   | Proj1 | Proj2 | Const _ | MetaVar _ -> t
@@ -333,13 +342,13 @@ let rec processEq : (equation -> (equation list) option) unifyM =
   (* I have a != Proj1 or Proj2, because really Proj1 and Proj2 should take their argument as a parameter directly and shouldn't show up here. The issue is cases like "snd x = ..." will trigger this case.*)
   | App(a, p), t when a <> Proj1 && a <> Proj2 && Option.is_some (Option.bind (pattern_of_term_opt p) (fun p -> if pattern_not_occurs !env p a then Some () else None)) ->
     let pat = Option.get (pattern_of_term_opt p) in
-    let x = freshVarId () in
+    let x = freshVarId "x" () in
     let rhs = (Lam (x, substNeutral pat (Var x) t)) in
     print_endline ("In the pattern case with " ^ show_term (fst eq) ^ " = " ^ show_term (snd eq) ^ ". Outputting: " ^ show_term a ^ " = " ^ show_term rhs ^ " which normalized = " ^ show_term (norm rhs));
     Some [a, Lam (x, substNeutral pat (Var x) t)]
   | t, App(a, p) when  a <> Proj1 && a <> Proj2 && Option.is_some (Option.bind (pattern_of_term_opt p) (fun p -> if pattern_not_occurs !env p a then Some () else None)) ->
     let pat = Option.get (pattern_of_term_opt p) in
-    let x = freshVarId () in
+    let x = freshVarId "x" () in
     Some [a, Lam (x, substNeutral pat (Var x) t)]
   (* TODO: Think about these cases more carefully! *)
   | t1, App (Proj1, t2) | App (Proj1, t2), t1 -> Some [t2, Pair(t1, MetaVar (freshId ()))]
