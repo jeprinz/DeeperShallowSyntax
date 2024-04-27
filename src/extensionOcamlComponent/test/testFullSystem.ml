@@ -34,13 +34,20 @@ let _prog1 =
 let testSpecSpec (_ : unit) =
   print_endline "Test: ability to load a spec, and use that spec to check a second program.";
   let parserSpec = makeParser spec in
+
+  (*
+
+    \x y z . A (?X (fst x)) B == \x y z . A (Bla (Clonk (snd (fst x)))) B
+  **)
   
   (* The specification for the program *)
   let langSpec =
     {|
 {
     {Result ?X},
-    \x y z w1 w2. A (?X z y (w1, w2) x) B == \x y z w1 w2. A w2 B
+    Thing (Var snd)
+    ==
+    Thing (Var (\y. ?X (fst y)))
     ------------------------------------- "test2"
     Bla
 }

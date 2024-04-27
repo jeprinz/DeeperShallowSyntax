@@ -1,0 +1,7 @@
+fun A : Type =>
+fun B : Type =>
+fun C : Type =>
+fun D : Type =>
+fun acceptsA : A -> Type =>
+fun x : ((f : Type -> Type) -> f A) =>
+    acceptsA (x (fun a => a))

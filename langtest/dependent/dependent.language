@@ -74,6 +74,12 @@ weaken = \t. \gamma. t (fst gamma)
     --------------- "(_)"
     Term ?G ?T ?t
 }
+{
+    {HoleOf CONTEXT ?ctx TYPE ?ty TERM ?t},
+    Term ?ctx ?ty ?t
+    ------------------------- "Probe _"
+    Term ?ctx ?tOut ?tOut
+}
 /*
  */
 {
@@ -83,7 +89,7 @@ weaken = \t. \gamma. t (fst gamma)
     Term ?ctx ?ty (var ?t)
 }
 {
-    {HoleOf Context ?ctx Type ?ty Term ?t}
+    {HoleOf CONTEXT ?ctx TYPE ?ty TERM ?t}
     ------------------------- "?"
     Term ?ctx ?ty ?t
 }

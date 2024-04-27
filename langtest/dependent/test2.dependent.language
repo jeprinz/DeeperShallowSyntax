@@ -1,5 +1,4 @@
 fun A : Type => fun B : Type =>
-    fun asdf : ? -> ? =>
     fun acceptsA : A -> Type =>
     fun x : ((f : Type -> (Type -> Type)) -> f A B) =>
-        acceptsA (x (fun a => fun b => a))
+        Probe (x (fun a => fun b => a))

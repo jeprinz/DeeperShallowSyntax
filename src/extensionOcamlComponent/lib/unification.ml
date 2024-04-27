@@ -155,6 +155,48 @@ let rec subst (name : varId) (t' : term) (t : term) : term =
   | Proj1 | Proj2 | Const _ | MetaVar _ -> t
   | MetaData (d, t) -> MetaData(d, recur t)
 
+type pattern = Var of varId | (* App of pattern * term | *) Pair of pattern * pattern | Proj1 of pattern | Proj2 of pattern
+let rec term_of_pattern (p : pattern) : term =
+  match p with
+  | Var x -> Var x
+  | Pair(p1, p2) -> Pair(term_of_pattern p1, term_of_pattern p2)
+  | Proj1 p -> App(Proj1, term_of_pattern p)
+  | Proj2 p -> App(Proj2, term_of_pattern p)
+
+let rec pattern_of_term_opt (t : term) =
+  match t with
+  | Var x -> Some (Var x)
+  | Pair(t1, t2) -> Option.bind (pattern_of_term_opt t1) (fun p1 -> Option.bind (pattern_of_term_opt t2) (fun p2 -> Some (Pair(p1, p2))))
+  | App(Proj1, t) -> Option.bind (pattern_of_term_opt t) (fun p -> Some (Proj1 p))
+  | App(Proj2, t) -> Option.bind (pattern_of_term_opt t) (fun p -> Some (Proj2 p))
+  | _ -> None
+
+let rec substNeutral (u : pattern) (t' : term) (t : term) : term =
+  match u with
+  | Var x -> subst x t' t
+  | Pair(p1, p2) -> substNeutral p1 (App(Proj1, t')) (substNeutral p2 (App(Proj2, t')) t)
+  | Proj1 p -> substNeutral p (Pair(t', App(Proj2, term_of_pattern p))) t
+  | Proj2 p -> substNeutral p (Pair(App(Proj2, term_of_pattern p), t')) t
+
+(*
+For (x, y), need to check that both x and y don't occur.  
+For (fst x), only need to check that (fst x) doesn't occur.
+
+TODO: this function doesn't correctly check for more general patterns.
+For example, (pattern_not_occurs _ (fst x) x) should return false, but instead returns true.
+But on the other hand, (pattern_not_occurs _ (fst x) (snd x)) should return true.
+*)
+let rec pattern_not_occurs (env : sub) (p : pattern) (t : term) : bool =
+    match p, t with
+    | Pair(p1, p2), _ -> pattern_not_occurs  env p1 t && pattern_not_occurs env p2 t
+    | _, MetaVar y -> (match IntMap.find_opt y env with
+      | Some t' -> pattern_not_occurs env p t'
+      | None -> true)
+    | Var x, Var y -> not (x = y)
+    | Proj1 p, App(Proj1, a) -> pattern_not_occurs env p a
+    | Proj2 p, App(Proj2, a) -> pattern_not_occurs env p a
+    | _ -> List.for_all (pattern_not_occurs env p) (children t)
+
 let rec reduceImpl (env : sub) (t : term) : term option =
   match t with
   | MetaVar x when IntMap.mem x env -> (
@@ -218,7 +260,7 @@ let rec reducedAreDefinitelyUnequal (t1 : term) (t2 : term) : bool =
 (*This implementation is not fast*)
 let rec norm (t : term) : term =
   match t with
-  | Lam (x1, App (t, Var x2)) when x1 = x2 && var_not_occurs (IntMap.empty) x2 t -> t (*function eta*)
+  | Lam (x1, App (t, Var x2)) when x1 = x2 && var_not_occurs (IntMap.empty) x2 t -> norm t (*function eta*)
   | Pair (App (Proj1, t1), App (Proj2, t2)) when t1 = t2 -> norm t1 (*pair eta*)
   | MetaData (_, t) -> t
   | App (Lam (x, t1), t2) -> norm (subst x t2 t1)
@@ -229,7 +271,10 @@ let rec norm (t : term) : term =
       let t2' = norm t2 in
       let res = App (t1', t2') in
       if t1' = t1 && t2 = t2' then res else norm res
-  | Lam (x, t) -> Lam (x, norm t)
+  | Lam (x, t) ->
+    let t' = norm t in
+    let res = Lam(x, t') in
+    if t' = t then res else norm res
   | Pair (t1, t2) -> Pair (norm t1, norm t2)
   | _ -> t
 
@@ -275,26 +320,26 @@ let rec processEq : (equation -> (equation list) option) unifyM =
     | Proj1, Pair(_, _) | Pair(_, _), Proj1 | Proj2, Pair(_, _) | Pair(_, _), Proj2  -> raise ifFail *)
   | Proj1, Proj1 | Proj2, Proj2 -> Some []
   | Pair (a1, b1), Pair (a2, b2) -> Some [a1,a2; b1,b2]
+  (* These two cases are redundant with the more general case below, but they preserve readable variable names better. *)
   | App (t1, Var x), t2 when var_not_occurs !env x t1 -> (*e.g. if A x = t, then A = \x.t*)
     Some [t1, Lam (x, t2)]
   | t2, App (t1, Var x) when var_not_occurs !env x t1 -> (*e.g. if A x = t, then A = \x.t*)
     Some [t1, Lam (x, t2)]
-  | App (t1, Pair (Var x, Var y)), t2 when x <> y && var_not_occurs !env x t1 && var_not_occurs !env y t1 ->
-    let z = freshVarId () (*fresh variable*) in
-    Some [t1, Lam(z, subst y (App (Proj2, Var z)) (subst x (App(Proj1, Var z)) t2))]
-  | t2, App (t1, Pair (Var x, Var y)) when x <> y && var_not_occurs !env x t1 && var_not_occurs !env y t1 ->
-    let z = freshVarId () (*fresh variable*) in
-    Some [t1, Lam(z, subst y (App (Proj2, Var z)) (subst x (App(Proj1, Var z)) t2))]
+  (*e.g. if A x = t, then A = \x.t*)
+  (* I have a != Proj1 or Proj2, because really Proj1 and Proj2 should take their argument as a parameter directly and shouldn't show up here. The issue is cases like "snd x = ..." will trigger this case.*)
+  | App(a, p), t when a <> Proj1 && a <> Proj2 && Option.is_some (Option.bind (pattern_of_term_opt p) (fun p -> if pattern_not_occurs !env p a then Some () else None)) ->
+    let pat = Option.get (pattern_of_term_opt p) in
+    let x = freshVarId () in
+    let rhs = (Lam (x, substNeutral pat (Var x) t)) in
+    print_endline ("In the pattern case with " ^ show_term (fst eq) ^ " = " ^ show_term (snd eq) ^ ". Outputting: " ^ show_term a ^ " = " ^ show_term rhs ^ " which normalized = " ^ show_term (norm rhs));
+    Some [a, Lam (x, substNeutral pat (Var x) t)]
+  | t, App(a, p) when  a <> Proj1 && a <> Proj2 && Option.is_some (Option.bind (pattern_of_term_opt p) (fun p -> if pattern_not_occurs !env p a then Some () else None)) ->
+    let pat = Option.get (pattern_of_term_opt p) in
+    let x = freshVarId () in
+    Some [a, Lam (x, substNeutral pat (Var x) t)]
   (* TODO: Think about these cases more carefully! *)
   | t1, App (Proj1, t2) | App (Proj1, t2), t1 -> Some [t2, Pair(t1, MetaVar (freshId ()))]
   | t1, App (Proj2, t2) | App (Proj2, t2), t1 -> Some [t2, Pair(MetaVar (freshId ()), t1)]
-  (* These (and other) cases should be generalized, but for now I'll write them as special cases: *)
-  | App(t1, App(Proj1, Var x)), t2 when var_not_occurs !env x t1 ->
-    let y = freshVarId () in
-    Some [t1, Lam(y, subst x (Pair(Var y, App(Proj2, Var x))) t2)]
-  | t2, App(t1, App(Proj1, Var x)) when var_not_occurs !env x t1 ->
-    let y = freshVarId () in
-    Some [t1, Lam(y, subst x (Pair(Var y, App(Proj2, Var x))) t2)]
   | t1, t2 when reducedAreDefinitelyUnequal t1 t2 -> raise ifFail
   | t1, t2 when norm (metaSubst !env t1) = norm (metaSubst !env t2) -> Some []
   | _ -> None
