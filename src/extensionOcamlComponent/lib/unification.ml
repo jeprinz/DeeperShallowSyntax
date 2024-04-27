@@ -264,6 +264,9 @@ let rec reducedAreDefinitelyUnequal (t1 : term) (t2 : term) : bool =
   | Var n1, Var n2 -> n1 <> n2
   | Const s1, Const s2 -> s1 <> s2
   | Proj1, Proj1 | Proj2, Proj2 -> false
+  (* Its tricky to tell if a pair is not equal to something, because it could eta reduce. Obviously, I
+     need a better algorithm overall for this stuff. *)
+  | Pair(_, _), _ | _, Pair(_, _) -> false
   | t1, t2 ->
     match getValueTag t1, getValueTag t2 with (*Note that if t1 or t2 is a lambda, then it can't have been on the left of an App. Likewise, if its a pair, it can't have been in a proj1 or proj2.*)
     | Some tag1, Some tag2 -> not (tag1 = tag2)
@@ -324,15 +327,9 @@ let rec processEq : (equation -> (equation list) option) unifyM =
   | App (MetaVar x, Var n), App (MetaVar y, Var n') when n = n' -> Some [(MetaVar x, MetaVar y)] (* TODO: I think that this case and the next are redundant with the X x = t case!*)
   | App (MetaVar x, Pair (Var a, Var b)), App (MetaVar y, Pair (Var a', Var b'))
     when a = a' && b = b' && a <> b -> Some [(MetaVar x, MetaVar y)]
-  (*| (Lam _, t) | (t, Lam _) when neutralLike t -> raise ifFail*)(*Note to self: I have no memory of what this case is suppposed to be for.*)
-  (* | Lam _, Pair (_, _) | Pair (_, _), Lam _ | Lam _, Const _ (* TODO: think of a smarter way to express these situations where you get a contradiction *)
-    | Const _ , Lam _ | Const _, Pair (_, _) | Pair (_, _), Const _
-    | Lam _, Proj1| Proj1, Lam _| Lam _, Proj2| Proj2, Lam _| Proj1, Proj2| Proj2, Proj1
-    | Const _, Proj1| Proj1, Const _| Const _, Proj2| Proj2, Const _
-    | Var _, Const _ | Const _ , Var _ | Var _ , Pair(_, _) | Pair(_, _), Var _
-    | Proj1, Pair(_, _) | Pair(_, _), Proj1 | Proj2, Pair(_, _) | Pair(_, _), Proj2  -> raise ifFail *)
   | Proj1, Proj1 | Proj2, Proj2 -> Some []
   | Pair (a1, b1), Pair (a2, b2) -> Some [a1,a2; b1,b2]
+  (*| Pair(a1, a2), ((Var _) as t) | ((Var _) as t), Pair(a1, a2) -> Some[App(Proj1, t), a1; App(Proj2, t), a2] (*Is this right?*) *)
   (* These two cases are redundant with the more general case below, but they preserve readable variable names better. *)
   | App (t1, Var x), t2 when t1 <> Proj1 && t1 <> Proj2 && var_not_occurs !env x t1 -> (*e.g. if A x = t, then A = \x.t*)
     Some [t1, Lam (x, t2)]
@@ -382,7 +379,6 @@ let unify (eqs:equation list) : (sub * equation list) option =
     let finalEqs = unifyImpl sub false (List.map (fun e -> ((), e)) eqs) [] in
     Some (!sub, List.map snd finalEqs)
   with Failure(_t1, _t2) ->
-    (* print_endline ("unify failed with: " ^ show_term t1 ^ " != " ^ show_term t2 ); *)
     None
 
 let unifyPartially (env : sub) (eqs : ('metadata * equation) list) : (sub * ('metadata * equation) list) option =
@@ -390,7 +386,9 @@ let unifyPartially (env : sub) (eqs : ('metadata * equation) list) : (sub * ('me
     let sub = ref env in
     let finalEqs = unifyImpl sub false eqs [] in
     Some (!sub, finalEqs)
-  with Failure(_) -> None
+  with Failure(_t1, _t2) ->
+    (* print_endline ("--------------------------------------- unify failed with: " ^ show_term t1 ^ " != " ^ show_term t2 ); *)
+    None
 
 
 let test (eqs : equation list) : (((id * term) list) * equation list) option =

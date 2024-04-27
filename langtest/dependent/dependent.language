@@ -13,6 +13,13 @@ lambda = \t. \gamma a. t (gamma, a)
 app = \t1 t2. \gamma. (t1 gamma) (t2 gamma)
 
 weaken = \t. \gamma. t (fst gamma)
+{
+    {TheValWas ?t1},
+    Term ?Gamma (pi ?A ?B) ?t1,
+    Term ?Gamma ?A ?t2
+    ---------------------------------------------------------- "App2 _ _"
+    Term ?Gamma (\gamma. ?B (gamma, ?t2 gamma)) ?any
+}
 
 {
     Regex ?name "[a-zA-Z]+"

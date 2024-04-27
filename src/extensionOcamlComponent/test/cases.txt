@@ -1,0 +1,10 @@
+Hopefully at some point I can make these automatically tested, but for now just a list
+
+Should be solved as ?A = fst x, ?B = snd ?
+x == (?A, ?B)
+
+Should be solved as:
+    ?Z = snd x
+    ?Y = snd (fst x)
+    ?X = fst (fst (fst x)))
+x == (((?X,snd (fst (fst x))),?Y),?Z)

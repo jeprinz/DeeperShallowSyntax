@@ -141,6 +141,6 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
     {pos; preMessage = fun sub -> "Disequality unresolved at end: (" ^ show_term (metaSubst sub t1) ^ " ?= " ^ show_term (metaSubst sub t2) ^ ")"}) !disequalityConstraints in
   let leftoverEqualities : preErrorMessage list =
     List.map (fun (pos, (t1, t2)) ->
-    {pos; preMessage = fun sub -> "Equality unresolved at end: (" ^ show_term (metaSubst sub t1) ^ " ?= " ^ show_term (metaSubst sub t2) ^ ")"}) !equations in
+    {pos; preMessage = fun sub -> "Equality unresolved at end: (" ^ show_term (norm (metaSubst sub t1)) ^ " ?= " ^ show_term (norm (metaSubst sub t2)) ^ ")"}) !equations in
   (List.map (fun {pos; preMessage} -> {pos; message = preMessage !sub})
     (leftoverEqualities @ leftoverConstraintErrors @ leftoverDisequalityErrors @ !errorMessages))

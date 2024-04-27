@@ -37,25 +37,73 @@ let testSpecSpec (_ : unit) =
 
   (*
 
-    \x y z . A (?X (fst x)) B == \x y z . A (Bla (Clonk (snd (fst x)))) B
+    NOTE WHERE I LEFT OFF: the equality that I am trying to unify here comes up in the bugged test dependent file.
+    But for some reason, the parser of the spec doesn't even terminate.
 
-    Var (((M83152,(A,λ gamma. Type)),(B,λ gamma. Type)),(acceptsA,λ gamma. Pi (snd (fst gamma)) (λ a. Type)))
-      (λ _x80787. Pi (snd (fst _x80787)) (λ a. M79523 ((_x80787,snd gamma),a)))
-      M80777 acceptsA
+    Constraint had no solution:
+    Var
+      (?innerCtx,(acceptsA,\ gamma. Pi (snd (fst gamma)) (\ a. Type)))
+      (\ x. Pi (snd (fst (fst x))) (\ a. ?typeToBeInferred ((x,snd gamma),a)))
+      ?term
+      acceptsA
+    
+    At the time,
+    Var
+      (?innerCtx,(acceptsA,\ gamma. Pi (snd (fst gamma)) (\ a. Type)))
+      (\ x. Pi (?M70632 ((x,snd gamma),?M71112 (fst x))) (\ a. ?typeToBeInferred ((x,snd gamma),a)))
+      M70124 acceptsA )
+    
+    Compare to:
 
-    Zero case:
     Var (cons ?Gamma ?name ?T) (weaken ?T) zero ?name
+
+lhs = 
+    \gamma2.
+    Var
+      (?innerCtx,("acceptsA",\ gamma. Pi (snd (fst gamma)) (\ a. Type)))
+      (\ x. Pi (snd (fst (fst x))) (\ a. ?X ((x,snd gamma2),a)))
+      ?term
+      "acceptsA"
+---------------------------- OLD:
+
+cons = \gamma name ty. (gamma, (name, ty))
+weaken = \t. \gamma. t (fst gamma)
+zero = \x. snd x
+lhs =
+    \gamma2.
+    Var
+      (?innerCtx,("acceptsA",\ gamma. Pi (snd (fst gamma)) (\ a. Type)))
+      (\ x. Pi (?M70632 ((x,snd gamma2),?M71112 (fst x))) (\ a. ?X ((x,snd gamma2),a)))
+      ?term
+      "acceptsA"
+rhs = 
+    \gamma2.
+    Var (cons ?Gamma ?name ?T) (weaken ?T) zero ?name
+
+---------------------------------------------
+z ?= (((M27486,snd ((z,snd gamma),snd (fst (fst z))))),M27487),M27488)
 
   **)
   
   (* The specification for the program *)
   let langSpec =
     {|
+cons = \gamma name ty. (gamma, (name, ty))
+weaken = \t. \gamma. t (fst gamma)
+zero = \x. snd x
+lhs =
+    \gamma2.
+    Var
+      (?innerCtx,("acceptsA",\ gamma. Pi (snd (fst gamma)) (\ a. Type)))
+      (\ x. Pi (?M70632 ((x,snd gamma2),?M71112 (fst x))) (\ a. ?X ((x,snd gamma2),a)))
+      ?term
+      "acceptsA"
+rhs = 
+    \gamma2.
+    Var (cons ?Gamma ?name ?T) (weaken ?T) zero ?name
 {
     {Result ?X},
-    Thing (\ gamma. Pi (snd (fst gamma)) (\ a. Type))
-    ==
-    Thing (\ x. Pi (snd (fst x)) (\ a. ?X ((x,snd gamma),a)))
+    lhs == rhs
     ------------------------------------- "test2"
     Bla
 }
