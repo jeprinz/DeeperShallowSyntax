@@ -1,0 +1,51 @@
+/*
+   A language with very simple polymorphism:
+   Every top level definition is polymorphic over a single argument
+   called "X"
+*/
+
+{
+    ------------ "X"
+    Type (\x. x)
+}
+
+arrow = \a b. \x. Arrow (a x) (b x)
+{
+    Type ?A, Type ?B
+    ------------------------------- "_ -> _"
+    Type (arrow ?A ?B)
+}
+
+/* Application */
+{
+    Term (arrow ?A ?B), Term ?A 
+    ------------------------------- "_ _"
+    Term ?B
+}
+
+/* Top level definition */
+{
+    
+    Name ?name,
+    Type ?ty,
+    Name ?name,
+    ParamList ?ctx ?innerCtx
+    Term ?ctx ?ty,
+    TopLevel (Cons ?ctx ?name ?ty)
+    --------------------------------- "_ : _ _ _ =  _ _"
+    TopLevel ?ctx
+}
+
+/* Top level print statement */
+{
+    Term ?ctx,
+    TopLevel ?ctx
+    ------------------------ "print _ _"
+    TopLevel ?ctx
+}
+
+{
+    Regex ?name "[a-zA-Z]+"
+    ------------------------- "_"
+    Name ?name
+}

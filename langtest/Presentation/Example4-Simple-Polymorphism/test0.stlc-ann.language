@@ -1,0 +1,3 @@
+let f : (Int -> Int) = 5
+    in
+[f] true

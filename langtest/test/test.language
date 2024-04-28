@@ -1,18 +1,10 @@
-
-cons = \gamma name ty. (gamma, (name, ty))
-weaken = \t. \gamma. t (fst gamma)
-succ = weaken3
-
-a = (\other. \gamma. (Thing
-  (cons ?Gamma ?name ?T)
-  (\gamma. Pi (snd (fst gamma)))
-  (\a . Type)))
 {
-    {Result ?X},
-     a == (\other. \gamma. (Thing
-      (INNER ,(acceptsA,λ _gamma10393. Pi (snd (fst _gamma10394)) (λ _a10791. Type)))
-      (\x. Pi (snd (fst x)))
-      (\a. ?X ((other, snd gamma), a))))
-    ------------------------------- "test
-    Bla
+    --------- "Int"
+    Type Int
+}
+
+{
+    Type ?A, Type ?B
+    -------------------- "_ -> _"
+    Type (Arrow ?A ?B)
 }

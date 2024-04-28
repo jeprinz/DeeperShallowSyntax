@@ -342,8 +342,8 @@ let rec processEq : (equation -> (equation list) option) unifyM =
   | App(a, p), t when a <> Proj1 && a <> Proj2 && Option.is_some (Option.bind (pattern_of_term_opt p) (fun p -> if pattern_not_occurs !env p a then Some () else None)) ->
     let pat = Option.get (pattern_of_term_opt p) in
     let x = freshVarId "x" () in
-    let rhs = (Lam (x, substNeutral pat (Var x) t)) in
-    print_endline ("In the pattern case with " ^ show_term (fst eq) ^ " = " ^ show_term (snd eq) ^ ". Outputting: " ^ show_term a ^ " = " ^ show_term rhs ^ " which normalized = " ^ show_term (norm rhs));
+    (* let rhs = (Lam (x, substNeutral pat (Var x) t)) in *)
+    (* print_endline ("In the pattern case with " ^ show_term (fst eq) ^ " = " ^ show_term (snd eq) ^ ". Outputting: " ^ show_term a ^ " = " ^ show_term rhs ^ " which normalized = " ^ show_term (norm rhs)); *)
     Some [a, Lam (x, substNeutral pat (Var x) t)]
   | t, App(a, p) when  a <> Proj1 && a <> Proj2 && Option.is_some (Option.bind (pattern_of_term_opt p) (fun p -> if pattern_not_occurs !env p a then Some () else None)) ->
     let pat = Option.get (pattern_of_term_opt p) in

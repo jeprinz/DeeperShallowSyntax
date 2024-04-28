@@ -1,0 +1,10 @@
+and : Bool -> Bool -> Bool
+and x y =
+    if x
+        then if y then true else false
+    else false
+
+applyTwice : (X -> X) -> X -> X
+applyTwice f x = f (f x)
+
+print (and true (applyTwice not true))

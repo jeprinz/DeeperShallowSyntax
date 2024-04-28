@@ -1,0 +1,55 @@
+{
+    Name ?name, Term (Cons ?name ?A ?ctx) ?B
+    --------------------------------------------- "fun _ => _"
+    Term ?ctx (Arrow ?A ?B)
+}
+{
+    Term ?ctx (Arrow ?A ?B), Term ?ctx ?A
+    ---------------------------------------- "_ _"
+    Term ?ctx ?B
+}
+{
+    --------------------------------- ""
+    InCtx ?x (Cons ?x ?ty ?rest) ?ty
+}
+{
+    InCtx ?x ?ctx ?b,
+    ?x != ?y
+    --------------------------------- "_"
+    InCtx ?x (Cons ?y ?a ?ctx) ?b
+}
+{
+    Term ?ctx Int,
+    Term ?ctx Int
+    --------------------- "_ + _"
+    Term ?ctx Int
+}
+{
+    Term ?ctx ?ty
+    ------------------ "(_)"
+    Term ?ctx ?ty
+}
+{
+    ------------------- "true"
+    Term ?ctx Bool
+}
+{
+    ------------------- "true"
+    Term ?ctx Bool
+}
+{
+    Regex ?Int "[0-9]+"
+    ------------------- "_"
+    Term ?ctx Int
+}
+{
+    Regex ?name "[a-zA-Z]+"
+    ------------------------- "_"
+    Name ?name
+}
+{
+    Name ?name,
+    {InCtx ?name ?ctx ?ty}
+    -------------------------------- "_"
+    Term ?ctx ?ty
+}

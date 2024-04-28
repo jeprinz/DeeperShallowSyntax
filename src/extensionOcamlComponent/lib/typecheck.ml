@@ -100,13 +100,27 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
       ) !disequalityConstraints []
   in
 
+  (* TODO: When unification fails, it should use the metadata to know which equality failed, and place errors in the correct location.
+     And then still keep unifying the rest of the equations.
+     But for now, I'll just allow it to resolve all equations if all do resolve.*)
+  let processEqualities (_ : unit) : unit =
+    match unifyPartially !sub !equations with
+    | None -> ()
+    | Some (sub', equations') ->
+      sub := sub';
+      equations := equations';
+      ()
+  in
+
   (*TODO: Do something with equalities and disequalities!*)
   let rec typecheckImpl (sort : term) (prog : program) : unit =
     match prog with
     | Node ((AstString label, lpos, rpos), _) ->
       (* TODO: If the input sort is something like (Regex s "the_regex"), then it should do something in this case.  *)
       (match matchRegexSort sort with
-      | Some (s, _regex) -> equations := ({left=lpos; right=rpos}, (s, Const label)) :: !equations (* TODO: I should probably have a StringLiteral constructor, instead of just Const. *)
+      | Some (s, _regex) ->
+        equations := ({left=lpos; right=rpos}, (s, Const label)) :: !equations; (* TODO: I should probably have a StringLiteral constructor, instead of just Const. *)
+        ()
       | None -> raise (Error "no"))
     | Node ((AstNode label, lpos, rpos) , kids) ->
       let pos = {left = lpos; right = rpos;} in
@@ -139,6 +153,7 @@ let typecheck (lang : inductive) (topSort : term) (prog : program) : errorMessag
   let leftoverConstraintErrors : preErrorMessage list = List.map (fun ({pos; sort} : sortConstraint) -> {pos; preMessage= fun sub -> "Constraint unresolved at end: " ^ show_term (metaSubst sub sort)}) !hiddenJudgements in
   let leftoverDisequalityErrors : preErrorMessage list = List.map (fun {pos; disequality= (t1, t2)} ->
     {pos; preMessage = fun sub -> "Disequality unresolved at end: (" ^ show_term (metaSubst sub t1) ^ " ?= " ^ show_term (metaSubst sub t2) ^ ")"}) !disequalityConstraints in
+  processEqualities ();
   let leftoverEqualities : preErrorMessage list =
     List.map (fun (pos, (t1, t2)) ->
     {pos; preMessage = fun sub -> "Equality unresolved at end: (" ^ show_term (norm (metaSubst sub t1)) ^ " ?= " ^ show_term (norm (metaSubst sub t2)) ^ ")"}) !equations in
