@@ -143,6 +143,11 @@ let rec neutralLike (t : term) : (term * term list) option =
   | MetaData (_, t) -> neutralLike t
   | _ -> None
 
+(* A rough comparison for use in the parser *)
+let sortCompare (t1 : term) (t2 : term) : bool =
+  match neutralLike t1, neutralLike t2 with
+  | Some (x, _), Some (y, _) -> x = y
+  | _ -> true
 
 (** TODO: Terms should be expanded at top level enough to start matching on them (call-by-name)
     They should be reduced until they are a value?
@@ -303,7 +308,7 @@ exception Failure of equation
 
 let rec processEq : (equation -> (equation list) option) unifyM =
   fun env (t1Pre, t2Pre) ->
-  print_endline ("In processEq, processing: " ^ show_term (metaSubst !env t1Pre) ^ " = " ^ show_term (metaSubst !env t2Pre));
+  (* print_endline ("In processEq, processing: " ^ show_term (metaSubst !env t1Pre) ^ " = " ^ show_term (metaSubst !env t2Pre)); *)
   let eq = (norm (metaSubst !env t1Pre), norm (metaSubst !env t2Pre)) in
   let ifFail = Failure eq in
   match eq with

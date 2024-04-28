@@ -88,23 +88,12 @@ z ?= (((M27486,snd ((z,snd gamma),snd (fst (fst z))))),M27487),M27488)
   (* The specification for the program *)
   let langSpec =
     {|
-{
-    --------- "Int"
-    Type Int
-}
-
-{
-    Type ?A, Type ?B
-    -------------------- "_ -> _"
-    Type (Arrow ?A ?B)
-}
     |};
   in
 
   (* The program to be checked *)
   let program = [
     {|
-Int -> Int
     |};
   ] in
 
@@ -114,7 +103,9 @@ Int -> Int
   log_time "parsing";
   let parsed = doParse parserSpec (fun x -> x) show_term [langSpec]
     topSort
-    (fun x y -> Option.is_some (unify [x, y])) in
+    (* (fun x y -> Option.is_some (unify [x, y])) *)
+    sortCompare
+    in
   log_time "parsed";
   match parsed with
   | Error msg -> print_endline ("Failed to parse spec: " ^ msg)
@@ -139,8 +130,9 @@ Int -> Int
       log_time "start parsing prog";
       let parsedProg = doParse progParser (fun x -> x) show_term program
         topSort
-        (fun x y -> Option.is_some (unify [x, y]))
+        (* (fun x y -> Option.is_some (unify [x, y])) *)
         (* (fun _x _y -> true) *)
+        sortCompare
       in
       log_time "end parsing prog";
       match parsedProg with

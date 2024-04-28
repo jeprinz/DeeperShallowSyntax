@@ -1,3 +1,4 @@
-let f : (Int -> Int) = 5
+let f : Int -> Int = fun x => x + 5
     in
-[f] true
+let id : X -> X = fun x => x
+[f] (id 10)

@@ -57,7 +57,9 @@ let checkSpecImpl (text : Js.js_string Js.t) : (string ast, errorMessage list) r
   let topSort = (topLevel nilSort (MetaVar (freshId ()))) in
   let parsed = doParse2 parserSpec (fun x -> x) show_term lines
     topSort
-    (fun x y -> Option.is_some (unify [x, y])) in
+    (* (fun x y -> Option.is_some (unify [x, y])) *)
+    sortCompare
+    in
   Firebug.console##log ("Here3");
   match parsed with
   | Error (pos, msg) ->
@@ -92,8 +94,9 @@ let checkProgram (specText : Js.js_string Js.t) (progText : Js.js_string Js.t) :
     let program = String.split_on_char '\n' string in
     let parsedProg = doParse2 progParser (fun x -> x) show_term program
       topSort
-      (fun x y -> Option.is_some (unify [x, y]))
+      (* (fun x y -> Option.is_some (unify [x, y])) *)
       (* (fun _x _y -> true) *)
+      sortCompare
     in
     match parsedProg with
     | Error (pos, msg) ->

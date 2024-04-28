@@ -3,7 +3,8 @@
    Every top level definition is polymorphic over a single argument
    called "X"
 */
-/* Everything from the previous file */
+
+/* First, everything from the STLC example */
 
 {
     Name ?name, Term (Cons Simple ?name ?A ?ctx) ?B
@@ -87,18 +88,18 @@ arrow = \a b. \x. Arrow (a x) (b x)
 
 {
     --------- "Int"
-    Type Int
+    Type (\x. Int)
 }
 
 {
     --------- "Bool"
-    Type Bool
+    Type (\x. Bool)
 }
 
 {
     Type ?A, Type ?B
     ------------------ "_ -> _"
-    Type (Arrow ?A ?B)
+    Type (arrow ?A ?B)
 }
 {
     Type ?ty
@@ -111,15 +112,8 @@ arrow = \a b. \x. Arrow (a x) (b x)
 {
     Name ?name,
     Type ?ty,
-    Term ?ctx ?ty,
+    Term ?ctx (?ty ?X),
     Term (Cons Poly ?name ?ty ?ctx) ?ty2
     --------------------------------- "let _ : _ = _ in _"
     Term ?ctx ?ty2
-}
-{
-    Name ?name,
-    Type ?A,
-    Term (Cons Simple ?name ?A ?ctx) ?B
-    --------------------------------------------- "fun _ : _ => _"
-    Term ?ctx (Arrow ?A ?B)
 }
