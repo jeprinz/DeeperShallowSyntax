@@ -88,12 +88,135 @@ z ?= (((M27486,snd ((z,snd gamma),snd (fst (fst z))))),M27487),M27488)
   (* The specification for the program *)
   let langSpec =
     {|
+/*
+   A language with very simple polymorphism:
+   Every top level definition is polymorphic over a single argument
+   called "X"
+*/
+
+/* First, everything from the STLC example */
+
+{
+    Name ?name, Term (Cons Simple ?name ?A ?ctx) ?B
+    --------------------------------------------- "fun _ => _"
+    Term ?ctx (Arrow ?A ?B)
+}
+{
+    Term ?ctx (Arrow ?A ?B), Term ?ctx ?A
+    ---------------------------------------- "_ _"
+    Term ?ctx ?B
+}
+{
+    ---------------------------------------- ""
+    InCtx ?x (Cons ?kind ?x ?ty ?rest) ?ty ?kind
+}
+{
+    InCtx ?x ?ctx ?b ?kind,
+    ?x != ?y
+    ----------------------------------------------- "_"
+    InCtx ?x (Cons ?kind2 ?y ?a ?ctx) ?b ?kind
+}
+{
+    Term ?ctx Int,
+    Term ?ctx Int
+    --------------------- "_ + _"
+    Term ?ctx Int
+}
+{
+    Term ?ctx Bool,
+    Term ?ctx ?ty,
+    Term ?ctx ?ty
+    ----------------------- "if _ then _ else _"
+    Term ?ctx ?ty
+}
+{
+    Term ?ctx ?ty
+    ------------------ "(_)"
+    Term ?ctx ?ty
+}
+{
+    ------------------- "true"
+    Term ?ctx Bool
+}
+{
+    ------------------- "true"
+    Term ?ctx Bool
+}
+{
+    Regex ?Int "[0-9]+"
+    ------------------- "_"
+    Term ?ctx Int
+}
+{
+    Regex ?name "[a-zA-Z]+"
+    ------------------------- "_"
+    Name ?name
+}
+{
+    Name ?name,
+    {InCtx ?name ?ctx ?ty Simple}
+    -------------------------------- "_"
+    Term ?ctx ?ty
+}
+{
+    Name ?name,
+    {InCtx ?name ?ctx ?ty Poly}
+    -------------------------------- "[_]"
+    Term ?ctx (?ty ?instantiatedType)
+}
+
+/* Things pertaining to types */
+
+
+/* Derivations for types */
+{
+    ------------ "X"
+    Type (\x. x)
+}
+
+arrow = \a b. \x. Arrow (a x) (b x)
+
+{
+    --------- "Int"
+    Type (\x. Int)
+}
+
+{
+    --------- "Bool"
+    Type (\x. Bool)
+}
+
+{
+    Type ?A, Type ?B
+    ------------------ "_ -> _"
+    Type (arrow ?A ?B)
+}
+{
+    Type ?ty
+    ------------------ "(_)"
+    Type ?ty
+}
+
+/* Let expressions and annotated lambdas */
+
+{
+    Name ?name,
+    Type ?ty,
+    Term ?ctx (?ty ?X),
+    Term (Cons Poly ?name ?ty ?ctx) ?ty2
+    --------------------------------- "let _ : _ = _ in _"
+    Term ?ctx ?ty2
+}
     |};
   in
 
   (* The program to be checked *)
   let program = [
     {|
+let f : Int -> Int = fun x => x + 5
+    in
+let id : X -> X = fun x => x in
+[f] ([id] 10)
     |};
   ] in
 
