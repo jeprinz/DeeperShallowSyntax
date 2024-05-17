@@ -92,8 +92,19 @@
 }
 {
     Name ?name,
+    Term ?ctx ?ty,
+    Term (Cons ?name ?ty ?ctx) ?ty2
+    --------------------------------- "let _ = _ in _"
+    Term ?ctx ?ty2
+}
+{
+    Name ?name,
     Type ?A,
     Term (Cons ?name ?A ?ctx) ?B
     --------------------------------------------- "fun _ : _ => _"
     Term ?ctx (Arrow ?A ?B)
+}
+{
+    -------------------- "?"
+    Term ?ctx ?ty
 }

@@ -1,0 +1,68 @@
+/*
+The idea of this language is to test out a dependent type theory where
+membership is a proposition
+*/
+
+nil = Nil
+cons = \gamma name ty. (gamma, (name, ty))
+
+zero = \x. snd x
+succ = \x gamma. x (fst gamma)
+
+pi = \x y. \gamma. Pi (x gamma) (\a. y (gamma, a))
+arrow = \x y. pi x (weaken y)
+prop = \gamma. Prop
+set = \gamma. Set
+
+var = \x. x
+lambda = \t. \gamma a. t (gamma, a)
+app = \t1 t2. \gamma. (t1 gamma) (t2 gamma)
+
+weaken = \t. \gamma. t (fst gamma)
+
+/*
+Question: If I have an abstraction fun x : Int => ...,
+is the thing in the context inside the body `Member ... Int`, or Int?
+If the latter, then that is more similar to normal type theory.
+If the former, then does that make any sense in any way?
+Basically, the context contains proofs that we know are true.
+One thing that a proof could happen to be is a proof that a term is a member of a set,
+but we don't assume that.
+*/
+
+/*Application*/
+{
+    Proof ?Gamma (Member ?t1 (pi ?A ?B)),
+    Proof ?Gamma ?A
+    -------------------------------------------------------------------- "_ _"
+    Proof ?Gamma (Member (app ?t1 ?t2) (\gamma. ?B (gamma, ?t2 gamma)))
+}
+
+/*Abstraction*/
+{
+    Name ?name,
+    Proof ?Gamma (Member ?A type),
+    Proof (cons ?Gamma ?name ?A) (Member ?body ?B)
+    ------------------------------------------ "fun _ : _ => _"
+    Proof ?Gamma (Member (lambda ?body) (pi ?A ?B))
+}
+{
+    Name ?name,
+    Proof (cons ?Gamma ?name ?A) (Member ?body ?B)
+    ------------------------------------------ "fun _ => _"
+    Proof ?Gamma (Member (lambda ?body) (pi ?A ?B))
+}
+
+/*Type constructors - is this right? */
+{
+    Proof (Member ?x ?any),
+    Proof (Member ?s set)
+    -------------------------- "_ : _"
+    Proof ((Member ?x ?s) prop)
+}
+{
+    Name ?name1,
+    {Var ?ctx ?ty ?t ?name1},
+    -------------------------------- "_"
+    Term ?ctx ?ty (var ?t)
+}

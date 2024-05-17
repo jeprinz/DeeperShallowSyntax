@@ -34,8 +34,15 @@
     Term ?ctx Bool
 }
 {
-    ------------------- "true"
+    ------------------- "false"
     Term ?ctx Bool
+}
+{   
+    Term ?ctx Bool,
+    Term ?ctx ?A,
+    Term ?ctx ?A
+    ------------------------ "if _ then _ else _"
+    Term ?ctx ?A
 }
 {
     Regex ?Int "[0-9]+"

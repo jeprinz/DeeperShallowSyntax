@@ -1,1 +1,2 @@
-(fun x => x + 1) 2
+(fun x => x + 1)
+    (if true then 2 else true)

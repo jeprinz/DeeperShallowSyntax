@@ -1,0 +1,157 @@
+/*
+The goal here is to think about how pattern matching can be represented
+with intrinsicially typed rules in this style
+*/
+
+/*How do general lists work? For example:*/
+
+{
+    --------------------- ""
+    ArgList ?f ?ty ?ty
+}
+{
+    Term ?a, ArgList ?b ?c
+    -------------------------------- "_ _"
+    ArgList (Arrow ?a ?b) ?c
+}
+
+/*Lists in general. Parameters are:
+    1> regex for delimiter
+    2> function that wraps around argument sorts
+    3> function that wraps around output sorts
+    4> the output sort of the whole list
+    5> the output sort of the nil at the inside of the list */
+
+{
+    ?argSort ?a,
+    (Regex ?delim ?dummy),
+    List ?delim ?argSort ?outSort ?b ?c
+    --------------------------------------------------- "_ _ _"
+    List ?delim ?argSort ?outSort (?outSort ?a ?b) ?c
+}
+
+{
+    ?argSort ?a
+    --------------------------------------------------- "_"
+    List ?delim ?argSort ?outSort (?outSort ?a ?b) ?b
+}
+
+{
+    ------------------- ""
+    List ?delim ?sort
+}
+
+/*Sum types*/
+{
+    List "|" (\namety. SumElem ?tyctx (fst namety) (snd namety))
+        SumListCons ?list SumListNil
+    --------------------------------------------- "[_]"
+    Sum ?list
+}
+/*Sum element*/
+{
+    Name ?name, Type ?tyctx ?ty
+    --------------------------- "_ _"
+    SumElem ?tyctx ?name ?ty
+}
+
+{
+    ?thing,
+    {Print ?thing}
+    ------------------ "test _"
+    Top
+}
+
+{
+    Name ?name,
+    Type (Cons ?name ?tyctx),
+    Term (Cons ?name ?tyctx) ?ctx ?T
+    ---------------------------------- "type _ = _ in _"
+    Term ?tyctx ?ctx ?T
+}
+
+
+/*Below is standard STLC*/
+
+{
+    Name ?name, Term ?tyctx (Cons ?name ?A ?ctx) ?B
+    --------------------------------------------- "fun _ => _"
+    Term ?tyctx ?ctx (Arrow ?A ?B)
+}
+{
+    Term ?tyctx ?ctx (Arrow ?A ?B), Term ?ctx ?A
+    ---------------------------------------- "_ _"
+    Term ?tyctx ?ctx ?B
+}
+{
+    --------------------------------- ""
+    InCtx ?x (Cons ?x ?ty ?rest) ?ty
+}
+{
+    InCtx ?x ?ctx ?b,
+    ?x != ?y
+    --------------------------------- "_"
+    InCtx ?x (Cons ?y ?a ?ctx) ?b
+}
+{
+    Term ?tyctx ?ctx ?ty
+    ------------------ "(_)"
+    Term ?tyctx ?ctx ?ty
+}
+{
+    Regex ?name "[a-zA-Z]+"
+    ------------------------- "_"
+    Name ?name
+}
+{
+    Name ?name,
+    {InCtx ?name ?ctx ?ty}
+    -------------------------------- "_"
+    Term ?tyctx ?ctx ?ty
+}
+
+/* Derivations for types */
+
+{
+    Type ?tyctx ?A, Type ?tyctx ?B
+    -------------------- "_ -> _"
+    Type ?tyctx (Arrow ?A ?B)
+}
+{
+    ------------------ "Int"
+    Type ?tyctx Int
+}
+{
+    Type ?ty
+    ------------------ "(_)"
+    Type ?ty
+}
+
+/* Let expressions and annotated lambdas */
+
+{
+    Name ?name,
+    Type ?ty,
+    Term ?tyctx ?ctx ?ty,
+    Term ?tyctx (Cons ?name ?ty ?ctx) ?ty2
+    --------------------------------- "let _ : _ = _ in _"
+    Term ?tyctx ?ctx ?ty2
+}
+{
+    Name ?name,
+    Term ?tyctx ?ctx ?ty,
+    Term ?tyctx (Cons ?name ?ty ?ctx) ?ty2
+    --------------------------------- "let _ = _ in _"
+    Term ?tyctx ?ctx ?ty2
+}
+{
+    Name ?name,
+    Type ?A,
+    Term ?tyctx (Cons ?name ?A ?ctx) ?B
+    --------------------------------------------- "fun _ : _ => _"
+    Term ?tyctx ?ctx (Arrow ?A ?B)
+}
+{
+    -------------------- "?"
+    Term ?tyctx ?ctx ?ty
+}

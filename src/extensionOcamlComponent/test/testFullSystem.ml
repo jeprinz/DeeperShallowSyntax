@@ -89,63 +89,104 @@ z ?= (((M27486,snd ((z,snd gamma),snd (fst (fst z))))),M27487),M27488)
   let langSpec =
     {|
 /*
-   A language with very simple polymorphism:
-   Every top level definition is polymorphic over a single argument
-   called "X"
+The goal here is to think about how pattern matching can be represented
+with intrinsicially typed rules in this style
 */
 
-/* First, everything from the STLC example */
+/*How do general lists work? For example:*/
 
 {
-    Name ?name, Term (Cons Simple ?name ?A ?ctx) ?B
+    --------------------- ""
+    ArgList ?f ?ty ?ty
+}
+{
+    Term ?a, ArgList ?b ?c
+    -------------------------------- "_ _"
+    ArgList (Arrow ?a ?b) ?c
+}
+
+/*Lists in general. Parameters are:
+    1> regex for delimiter
+    2> function that wraps around argument sorts
+    3> function that wraps around output sorts
+    4> the output sort of the whole list
+    5> the output sort of the nil at the inside of the list */
+
+{
+    ?argSort ?a,
+    (Regex ?delim ?dummy),
+    List ?delim ?argSort ?outSort ?b ?c
+    --------------------------------------------------- "_ _ _"
+    List ?delim ?argSort ?outSort (?outSort ?a ?b) ?c
+}
+
+{
+    ?argSort ?a
+    --------------------------------------------------- "_"
+    List ?delim ?argSort ?outSort (?outSort ?a ?b) ?b
+}
+
+{
+    ------------------- ""
+    List ?delim ?sort
+}
+
+/*Sum types*/
+{
+    List "|" (\namety. SumElem ?tyctx (fst namety) (snd namety))
+        SumListCons ?list SumListNil
+    --------------------------------------------- "[_]"
+    Sum ?list
+}
+/*Sum element*/
+{
+    Name ?name, Type ?tyctx ?ty
+    --------------------------- "_ _"
+    SumElem ?tyctx ?name ?ty
+}
+
+{
+    ?thing,
+    {Print ?thing}
+    ------------------ "test _"
+    Top
+}
+
+{
+    Name ?name,
+    Type (Cons ?name ?tyctx),
+    Term (Cons ?name ?tyctx) ?ctx ?T
+    ---------------------------------- "type _ = _ in _"
+    Term ?tyctx ?ctx ?T
+}
+
+
+/*Below is standard STLC*/
+
+{
+    Name ?name, Term ?tyctx (Cons ?name ?A ?ctx) ?B
     --------------------------------------------- "fun _ => _"
-    Term ?ctx (Arrow ?A ?B)
+    Term ?tyctx ?ctx (Arrow ?A ?B)
 }
 {
-    Term ?ctx (Arrow ?A ?B), Term ?ctx ?A
+    Term ?tyctx ?ctx (Arrow ?A ?B), Term ?ctx ?A
     ---------------------------------------- "_ _"
-    Term ?ctx ?B
+    Term ?tyctx ?ctx ?B
 }
 {
-    ---------------------------------------- ""
-    InCtx ?x (Cons ?kind ?x ?ty ?rest) ?ty ?kind
+    --------------------------------- ""
+    InCtx ?x (Cons ?x ?ty ?rest) ?ty
 }
 {
-    InCtx ?x ?ctx ?b ?kind,
+    InCtx ?x ?ctx ?b,
     ?x != ?y
-    ----------------------------------------------- "_"
-    InCtx ?x (Cons ?kind2 ?y ?a ?ctx) ?b ?kind
+    --------------------------------- "_"
+    InCtx ?x (Cons ?y ?a ?ctx) ?b
 }
 {
-    Term ?ctx Int,
-    Term ?ctx Int
-    --------------------- "_ + _"
-    Term ?ctx Int
-}
-{
-    Term ?ctx Bool,
-    Term ?ctx ?ty,
-    Term ?ctx ?ty
-    ----------------------- "if _ then _ else _"
-    Term ?ctx ?ty
-}
-{
-    Term ?ctx ?ty
+    Term ?tyctx ?ctx ?ty
     ------------------ "(_)"
-    Term ?ctx ?ty
-}
-{
-    ------------------- "true"
-    Term ?ctx Bool
-}
-{
-    ------------------- "true"
-    Term ?ctx Bool
-}
-{
-    Regex ?Int "[0-9]+"
-    ------------------- "_"
-    Term ?ctx Int
+    Term ?tyctx ?ctx ?ty
 }
 {
     Regex ?name "[a-zA-Z]+"
@@ -154,42 +195,21 @@ z ?= (((M27486,snd ((z,snd gamma),snd (fst (fst z))))),M27487),M27488)
 }
 {
     Name ?name,
-    {InCtx ?name ?ctx ?ty Simple}
+    {InCtx ?name ?ctx ?ty}
     -------------------------------- "_"
-    Term ?ctx ?ty
+    Term ?tyctx ?ctx ?ty
 }
-{
-    Name ?name,
-    {InCtx ?name ?ctx ?ty Poly}
-    -------------------------------- "[_]"
-    Term ?ctx (?ty ?instantiatedType)
-}
-
-/* Things pertaining to types */
-
 
 /* Derivations for types */
+
 {
-    ------------ "X"
-    Type (\x. x)
+    Type ?tyctx ?A, Type ?tyctx ?B
+    -------------------- "_ -> _"
+    Type ?tyctx (Arrow ?A ?B)
 }
-
-arrow = \a b. \x. Arrow (a x) (b x)
-
 {
-    --------- "Int"
-    Type (\x. Int)
-}
-
-{
-    --------- "Bool"
-    Type (\x. Bool)
-}
-
-{
-    Type ?A, Type ?B
-    ------------------ "_ -> _"
-    Type (arrow ?A ?B)
+    ------------------ "Int"
+    Type ?tyctx Int
 }
 {
     Type ?ty
@@ -202,10 +222,28 @@ arrow = \a b. \x. Arrow (a x) (b x)
 {
     Name ?name,
     Type ?ty,
-    Term ?ctx (?ty ?X),
-    Term (Cons Poly ?name ?ty ?ctx) ?ty2
+    Term ?tyctx ?ctx ?ty,
+    Term ?tyctx (Cons ?name ?ty ?ctx) ?ty2
     --------------------------------- "let _ : _ = _ in _"
-    Term ?ctx ?ty2
+    Term ?tyctx ?ctx ?ty2
+}
+{
+    Name ?name,
+    Term ?tyctx ?ctx ?ty,
+    Term ?tyctx (Cons ?name ?ty ?ctx) ?ty2
+    --------------------------------- "let _ = _ in _"
+    Term ?tyctx ?ctx ?ty2
+}
+{
+    Name ?name,
+    Type ?A,
+    Term ?tyctx (Cons ?name ?A ?ctx) ?B
+    --------------------------------------------- "fun _ : _ => _"
+    Term ?tyctx ?ctx (Arrow ?A ?B)
+}
+{
+    -------------------- "?"
+    Term ?tyctx ?ctx ?ty
 }
     |};
   in
@@ -213,10 +251,7 @@ arrow = \a b. \x. Arrow (a x) (b x)
   (* The program to be checked *)
   let program = [
     {|
-let f : Int -> Int = fun x => x + 5
-    in
-let id : X -> X = fun x => x in
-[f] ([id] 10)
+test [a Int]
     |};
   ] in
 

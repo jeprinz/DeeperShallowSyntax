@@ -1,0 +1,8 @@
+/*
+The challenge here is to represent extensional type theory in this system,
+even though I can't in this system influence the way that term equivalence is
+computed - it is always just beta-eta-alpha equivalence.
+
+To solve this, I'll need a version of extensional type theory where applications
+of a substitution principle are explicit in the syntax.
+*/

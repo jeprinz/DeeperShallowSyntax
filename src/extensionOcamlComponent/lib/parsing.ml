@@ -300,20 +300,27 @@ and unravelList (inside : 'label ast) (t : 'label internalLabel ast) : 'label as
     )
   | _ -> raise (Error "unravelList")
 
-let doParse (lang : ('sort, 'label) language) (show_rule : 'label -> string) (show_sort : 'sort -> string) (lines : string list) (topSort : 'sort) (compare : 'sort -> 'sort -> bool) : ('label ast, string) result =
-  let internalRules = rewriteRules compare lang in
-  match (parse (rewriteCompare compare) internalRules (show_internalLabel show_rule) (show_internalSort show_sort) lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) with
-  | Ok ast ->
-    (* print_endline ("Parsed internal tree: " ^ show_tree (fun l -> show_ast_label_short_2 (show_internalLabel (fun x -> x)) l) ast); *)
-    Ok (convertBack ast)
-  | Error (msg, pos) -> Error ("At " ^ show_position pos ^ " " ^ msg)
+(* Makes a version of a language which pre-processes all of the sort comparisons.
+   Each rule in this language, instead of sorts, has just a list of the rules that it can match *)
+(* let optimizeLanguage *)
+type 'label preProcessedRule = PRule of 'label *  ((('label preProcessedRule list) Lazy.t) pattern list)
+type 'label preProcessedLanguage = 'label preProcessedRule list
+let preProcessLanguage (l : ('sort, 'label) language) : 'label preProcessedLanguage =
+  raise (Error "TODO")
 
 let doParse2 (lang : ('sort, 'label) language) (show_rule : 'label -> string) (show_sort : 'sort -> string) (lines : string list) (topSort : 'sort) (compare : 'sort -> 'sort -> bool) : ('label ast, position * string) result =
   let internalRules = rewriteRules compare lang in
   (* Firebug.console##log ("Here2.1"); *)
   match (parse (rewriteCompare compare) internalRules (show_internalLabel show_rule) (show_internalSort show_sort) lines {lineNumber = 0; posInLine = 0} (Top (NormalSort topSort))) with
-  | Ok ast -> Ok (convertBack ast)
+  | Ok ast ->
+    (* print_endline ("Parsed internal tree: " ^ show_tree (fun l -> show_ast_label_short_2 (show_internalLabel (fun x -> x)) l) ast); *)
+    Ok (convertBack ast)
   | Error (msg, pos) -> Error (pos, msg)
+
+let doParse (lang : ('sort, 'label) language) (show_rule : 'label -> string) (show_sort : 'sort -> string) (lines : string list) (topSort : 'sort) (compare : 'sort -> 'sort -> bool) : ('label ast, string) result =
+  match doParse2 lang show_rule show_sort lines topSort compare with
+  | Ok ast -> Ok ast
+  | Error (pos, msg) -> Error ("At" ^ show_position pos ^ " " ^ msg)
 
 (*
    
