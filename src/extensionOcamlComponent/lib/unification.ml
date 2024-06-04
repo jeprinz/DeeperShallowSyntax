@@ -10,8 +10,8 @@ type id = int
 let nextId : int ref = ref 0
 let freshId (_ : unit) : id =
   let next = !nextId in
-  nextId := !nextId + 1
-  ; next
+  nextId := !nextId + 1;
+  next
 
 type varId = Named of string | Generated of string * int
 let show_varId (i : varId) = match i with
