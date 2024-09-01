@@ -1,0 +1,138 @@
+/*
+The goal here is to think about how pattern matching can be represented
+with intrinsicially typed rules in this style
+*/
+
+/*How do general lists work? For example:*/
+
+{
+    --------------------- ""
+    TypeList ?tyctx Nil
+}
+
+{
+    TypeListElem ?tyctx ?name ?ty,
+    TypeList ?tyctx ?tylist
+    --------------------------------------------------- "_ | _"
+    TypeList ?tyctx (Cons ?name ?ty ?tylist)
+}
+
+{
+    TypeListElem ?tyctx ?name ?ty
+    --------------------------------------------------- "_"
+    TypeList ?tyctx (Cons ?name ?ty Nil)
+}
+
+/*Sum types*/
+{
+    TypeList ?tyctx ?tylist
+    --------------------------------------------- "[_]"
+    Sum ?tylist
+}
+/*Sum element*/
+{
+    Name ?name, Type ?tyctx ?ty
+    --------------------------- "_ _"
+    TypeListElem ?tyctx ?name ?ty
+}
+
+{
+    ?thing,
+    {Print ?thing}
+    ------------------ "test _"
+    Top
+}
+
+{
+    Name ?name,
+    Type (Cons ?name ?tyctx),
+    Term (Cons ?name ?tyctx) ?ctx ?T
+    ---------------------------------- "type _ = _ in _"
+    Term ?tyctx ?ctx ?T
+}
+
+
+/*Below is standard STLC*/
+
+{
+    Name ?name, Term ?tyctx (Cons ?name ?A ?ctx) ?B
+    --------------------------------------------- "fun _ => _"
+    Term ?tyctx ?ctx (Arrow ?A ?B)
+}
+{
+    Term ?tyctx ?ctx (Arrow ?A ?B), Term ?ctx ?A
+    ---------------------------------------- "_ _"
+    Term ?tyctx ?ctx ?B
+}
+{
+    --------------------------------- ""
+    InCtx ?x (Cons ?x ?ty ?rest) ?ty
+}
+{
+    InCtx ?x ?ctx ?b,
+    ?x != ?y
+    --------------------------------- "_"
+    InCtx ?x (Cons ?y ?a ?ctx) ?b
+}
+{
+    Term ?tyctx ?ctx ?ty
+    ------------------ "(_)"
+    Term ?tyctx ?ctx ?ty
+}
+{
+    Regex ?name "[a-zA-Z]+"
+    ------------------------- "_"
+    Name ?name
+}
+{
+    Name ?name,
+    {InCtx ?name ?ctx ?ty}
+    -------------------------------- "_"
+    Term ?tyctx ?ctx ?ty
+}
+
+/* Derivations for types */
+
+{
+    Type ?tyctx ?A, Type ?tyctx ?B
+    -------------------- "_ -> _"
+    Type ?tyctx (Arrow ?A ?B)
+}
+{
+    ------------------ "Int"
+    Type ?tyctx Int
+}
+{
+    Type ?ty
+    ------------------ "(_)"
+    Type ?ty
+}
+
+/* Let expressions and annotated lambdas */
+
+{
+    Name ?name,
+    Type ?ty,
+    Term ?tyctx ?ctx ?ty,
+    Term ?tyctx (Cons ?name ?ty ?ctx) ?ty2
+    --------------------------------- "let _ : _ = _ in _"
+    Term ?tyctx ?ctx ?ty2
+}
+{
+    Name ?name,
+    Term ?tyctx ?ctx ?ty,
+    Term ?tyctx (Cons ?name ?ty ?ctx) ?ty2
+    --------------------------------- "let _ = _ in _"
+    Term ?tyctx ?ctx ?ty2
+}
+{
+    Name ?name,
+    Type ?A,
+    Term ?tyctx (Cons ?name ?A ?ctx) ?B
+    --------------------------------------------- "fun _ : _ => _"
+    Term ?tyctx ?ctx (Arrow ?A ?B)
+}
+{
+    -------------------- "?"
+    Term ?tyctx ?ctx ?ty
+}

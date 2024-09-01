@@ -141,7 +141,7 @@ let parse (compare : 'sort -> 'sort -> bool) (lang : ('sort, 'label) language)
             if not (compare newSort sort) || (amILooping above newLabel pos) then
               (* TODO: There is no reason for this to run once for each non-matching rule.*)
               (
-              (* (print_endline ("At path " ^ show_top_of_path show_rule above ^ " NOT trying rule " ^ show_rule newLabel ^ " because " ^ show_sort sort ^ " != " ^ show_sort newSort)); *)
+              (print_endline ("At path " ^ show_top_of_path show_rule above ^ " NOT trying rule " ^ show_rule newLabel ^ " because " ^ show_sort sort ^ " != " ^ show_sort newSort));
               (newPossibleError ("No rule matches with sort " ^ show_sort sort ^ "In parent rule " ^ show_top_of_path show_rule above) ; None)
               )
             else
@@ -388,16 +388,8 @@ let doParse (lang : ('sort, 'label) language) (show_rule : 'label -> string) (sh
    *)
 
 (*
- Current issue: We end up with
- (cons "+" (OfList 5 (cons "+" (OfList 5 Nil))) Nil)
- Instead of
- (cons "+" (OfList 5 Nil) (cons "+" (OfList 5 Nil) Nil)))
-
- So, maybe inputs to any Cons should get rewritten to be atoms?
-
-
- ANOTHER IDEA:
-
- Maybe OfListLabel and Cons should actually be the same thing?
- ^^^^^ This seems right.
+Note: The above transformation is ONLY valid if the sort comparison function
+is an equivalence relation. Which is an issue, because simple comparisons over terms with
+metavariables end up not being transitive!
+TODO: Is there any way that I can weaken this requirement to only symmetric and reflexive?
 *)

@@ -20,10 +20,6 @@ weaken = \t. \gamma. t (fst gamma)
     Name ?name
 }
 {
-    ---------------- ""
-    IsId (\x . x)
-}
-{
     ----------------------------------------------------- ""
     Var (cons ?Gamma ?name ?T) (weaken ?T) zero ?name
 }
@@ -75,21 +71,8 @@ weaken = \t. \gamma. t (fst gamma)
     Term ?G ?T ?t
 }
 {
-    {HoleOf CONTEXT ?ctx TYPE ?ty TERM ?t},
-    Term ?ctx ?ty ?t
-    ------------------------- "Probe _"
-    Term ?ctx ?tOut ?tOut
-}
-/*
- */
-{
     Name ?name1,
     {Var ?ctx ?ty ?t ?name1},
     -------------------------------- "_"
     Term ?ctx ?ty (var ?t)
-}
-{
-    {HoleOf CONTEXT ?ctx TYPE ?ty TERM ?t}
-    ------------------------- "?"
-    Term ?ctx ?ty ?t
 }
