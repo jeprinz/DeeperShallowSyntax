@@ -5,7 +5,6 @@ derive a parser and typechecker for a given language from typing rules.
 
 The backend is written in ocaml in src/extensionOcamlComponent, which is a dune project.
 Build the ocaml code into javascript by runing "dune build" in that folder.
-(You don't need dune/ocaml installed to run the extension, only to develop)
 
 To run the VSCode extension:
 run `npm install`, go to extension.ts, and press Ctrl-F5 (or just F5 if you want it to run extra slowly, in debugger mode).
